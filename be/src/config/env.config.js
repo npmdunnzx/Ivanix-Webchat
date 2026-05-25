@@ -15,6 +15,13 @@ const config = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
   },
+  JWT: {
+    secret: process.env.JWT_SECRET,
+    expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+  },
+  BCRYPT : {
+    saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
+  }
 };
 
 export default config;
