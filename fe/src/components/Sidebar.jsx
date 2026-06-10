@@ -2,6 +2,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { MessageSquare, Users, BarChart3, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "../assets/styles/sidebar.css";
+import { useContext, useState, useEffect } from "react";
+import { AuthContext } from "../context/AuthContext.jsx";
 
 const navItems = [
   { icon: MessageSquare, label: "Tin nhắn", path: "/chat" },
@@ -36,9 +38,11 @@ const channels = [
 const cx = (...classes) => classes.filter(Boolean).join(" ");
 
 function Sidebar() {
+  const { userInfo } = useContext(AuthContext);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isChat = pathname.startsWith("/chat");
+
 
   return (
     <motion.aside
@@ -102,14 +106,14 @@ function Sidebar() {
             className={cx("profile-button", isChat && "profile-button-collapsed")}
             title="View Profile"
           >
-            <div className="profile-icon">A</div>
+            <div className="profile-icon">{userInfo?.username.charAt(0).toUpperCase() || "A"}</div>
             {!isChat && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="profile-info"
               >
-                <p>Admin</p>
+                <p>{userInfo?.username || "Admin"}</p>
                 <p>View Profile</p>
               </motion.div>
             )}

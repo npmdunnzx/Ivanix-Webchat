@@ -8,11 +8,16 @@ const signupRule = () => {
       .isEmail()
       .withMessage("Email is invalid")
       .normalizeEmail(),
-    body("username", "Username is invalid")
+    body("username")
       .notEmpty()
+      .withMessage("Username is required")
       .trim()
-    //   .escape()
-      .isLength({ min: 5 }),
+      .isLength({ min: 5, max: 15 })
+      .withMessage("Username must be between 5 and 15 characters")
+      .matches(/^[A-Za-z][A-Za-z0-9_]*$/)
+      .withMessage(
+        "Username must start with a letter and contain only letters and numbers",
+      ),
     body("password")
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/)
       .withMessage(
@@ -23,7 +28,7 @@ const signupRule = () => {
 
 const loginRule = () => {
   return [
-     body("email")
+    body("email")
       .notEmpty()
       .withMessage("Email is required")
       .isEmail()

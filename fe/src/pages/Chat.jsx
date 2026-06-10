@@ -1,98 +1,40 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { io } from "socket.io-client";
+import React, { useEffect, useMemo, useRef, useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext.jsx";
+import {socket} from "../services/socket.js";
+import { SocketContext } from "../context/SocketContext.jsx";
 import LayoutPage from "../components/LayoutPage.jsx";
 import "../assets/styles/chat.css";
+import { useNavigate } from "react-router-dom";
 
 function Chat() {
+  const { userInfo } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const counterRef = useRef(0);
   const messagesRef = useRef(null);
-
-  const username = useMemo(() => {
-    const savedUsername = localStorage.getItem("username");
-    return savedUsername || prompt("Nhap ten cua ban:") || "Anonymous";
-  }, []);
-
-  const roomName = useMemo(() => {
-    return new URLSearchParams(window.location.search).get("room") || "general";
-  }, []);
-
-  const serverOffsetKey = useMemo(() => {
-    return `serverOffset:${roomName}`;
-  }, [roomName]);
-
-  const socket = useMemo(() => {
-    return io("http://localhost:4000", {
-      auth: {
-        serverOffset: Number(localStorage.getItem(serverOffsetKey) || 0),
-        username,
-        roomName,
-      },
-      ackTimeout: 10000,
-      retries: 3,
-    });
-  }, [roomName, serverOffsetKey, username]);
+  const { socket } = useContext(SocketContext);
 
   useEffect(() => {
-    localStorage.setItem("username", username);
-
-    const handleConnect = () => {
-      socket.emit("join room", roomName);
-    };
-
-    const handleMessage = (msg, senderName, serverOffset) => {
-      setMessages((prev) => {
-        if (prev.some((message) => message.serverOffset === serverOffset)) {
-          return prev;
-        }
-
-        return [
-          ...prev,
-          {
-            serverOffset,
-            text: msg,
-            user: senderName,
-            mine: senderName === username,
-          },
-        ];
-      });
-
-      if (serverOffset) {
-        socket.auth.serverOffset = serverOffset;
-        localStorage.setItem(serverOffsetKey, String(serverOffset));
-      }
-    };
-
-    socket.on("connect", handleConnect);
-    socket.on("chat message", handleMessage);
+    socket.on("chat message", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
 
     return () => {
-      socket.off("connect", handleConnect);
-      socket.off("chat message", handleMessage);
-      socket.disconnect();
+      socket.off("chat message");
     };
-  }, [roomName, serverOffsetKey, socket, username]);
+  }, [socket]);
 
   useEffect(() => {
-    messagesRef.current?.scrollTo({
-      top: messagesRef.current.scrollHeight,
-      behavior: "smooth",
-    });
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    const text = input.trim();
-    if (!text || !socket.connected) return;
-
-    const clientOffset = `${socket.id}-${counterRef.current++}`;
-
-    socket.emit("chat message", text, roomName, clientOffset, (serverOffset) => {
-      console.log("message acknowledged:", serverOffset);
-    });
-
+    if (input.trim() === "") return;
+    socket.emit("chat message", input);
     setInput("");
   };
 
@@ -103,7 +45,10 @@ function Chat() {
       <div className="chat-container">
         <ul id="messages" ref={messagesRef}>
           {messages.map((msg, index) => (
-            <li key={msg.serverOffset || index} className={msg.mine ? "mine" : "other"}>
+            <li
+              key={msg.serverOffset || index}
+              className={msg.mine ? "mine" : "other"}
+            >
               {msg.text}
             </li>
           ))}

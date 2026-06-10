@@ -8,19 +8,20 @@ const countTodayBooking = (bookings) => {
 };
 
 const generateToken = (email, userId, rememberMe, res) => {
-  console.log();
+  // console.log();
   
   const token = jwt.sign({ email, userId }, config.JWT.secret, {
     expiresIn: rememberMe ? "30d" : config.JWT.expiresIn,
   });
 
-  res.cookie("token", token, {
+  res.cookie("jwt", token, {
     maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : Number(config.JWT.expiresIn.replace("d", "")) * 24 * 60 * 60 * 1000, //mili second,
     httpOnly: true,
     sameSite: "None",
     secure: true,
   });
-  // console.log("Generated JWT token:", token);
+  console.log("Set cookie successfully!");
+  // console.log("cookie:", token);
   return token;
 };
 

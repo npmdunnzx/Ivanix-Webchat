@@ -6,6 +6,6 @@ import {checkExistEmail,checkExistUsername} from "../middlewares/verifySignup.js
 const router = express.Router();
 
 router.post("/signup",[signupRule(),validate, checkExistUsername, checkExistEmail], authController.signup);
-router.post("/login",[loginRule(),validate], authController.signup);
+router.post("/login",[loginRule(),validate], authController.login);
 
 export default router;

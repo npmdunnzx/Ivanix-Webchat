@@ -85,3 +85,16 @@ ON conversations(last_message_at DESC);
 
 CREATE INDEX idx_users_username_lower ON users(lower(username));
 CREATE INDEX idx_users_email_lower ON users(lower(email));
+
+
+CREATE INDEX idx_members_conversation_id
+ON conversation_members(conversation_id);
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX idx_users_username_trgm
+
+ON users
+
+USING gin (username gin_trgm_ops); 
+

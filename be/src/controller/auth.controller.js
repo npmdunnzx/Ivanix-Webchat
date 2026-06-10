@@ -20,7 +20,7 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     const {email, password, rememberMe} = req.body;
     try {
-        const user = await authService.login(email, password );
+        const user = await authService.login(email, password);
         utils.generateToken(user.email, user.id, rememberMe, res);
         res.status(201).json({message: "Login successfully", user});
     } catch (err) {
@@ -36,4 +36,5 @@ const logout = async ( _, res) => {
 
 
 
-export default {signup, login};
+
+export default {signup, login, logout};

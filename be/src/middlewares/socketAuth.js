@@ -8,7 +8,7 @@ const socketAuth = async (socket, next) => {
       .find((row) => row.startsWith("jwt="))
       ?.split("=")[1];
       if (!token){
-        console.log("Socket connection rejected: No token provied");
+        console.log("Socket connection rejected: No token provided");
         return next(new Error("Unauthorized - No Token Provide"));
       }
       const decode = jwt.verify(token,config.JWT.secret);
@@ -16,7 +16,7 @@ const socketAuth = async (socket, next) => {
         console.log("Socket connection rejected: Invalid Token");
         return next(new Error("Unauthorized - Invalid Token"));
       }
-      socket.userId=decode.userId;
+      socket.userId = decode.userId;
       console.log(`Socket authenticated for user have email is ${decode.email}`);
       next();
   } catch (Err) {

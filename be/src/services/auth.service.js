@@ -18,25 +18,25 @@ const signup = async (username, email, password ) => {
         );
         return rows[0];
     } catch (error) {
-        console.error("Could not signup:", error);
-        throw error;
+        console.error("Could not signup:", error.message);
+        throw new Error("Could not signup:", error.message);
     }
 }
 
 const login = async (email, password) => {
-    const query = "SELECT id, username, email, password FROM users WHERE email = $1";
+    const query = "SELECT id, username, email, password_hash FROM users WHERE email = $1";
 
     try {
-        const { result } = await db.query(
+        const { rows } = await db.query(
             query,
             [email]
         );
-        if (result.length === 0) {
+        if (rows.length === 0) {
             throw new Error("User not found");
         };
-        const user = result[0];
+        const user = rows[0];
 
-        const passwordMatch = await bcrypt.compareSync(password, user.password);
+        const passwordMatch = await bcrypt.compareSync(password, user.password_hash);
         if (!passwordMatch) {
             throw new Error("Invalid password");
         }
@@ -52,5 +52,8 @@ const login = async (email, password) => {
     }
 }
 
+// const logout = async () =>  {
+
+// }
 
 export default { signup, login };
