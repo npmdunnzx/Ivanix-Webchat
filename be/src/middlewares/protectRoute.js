@@ -6,10 +6,12 @@ export const protectRoute = (req, res, next) => {
     const token = req.cookies.jwt;
     // console.log("token:", token);
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized - No token provided" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - No token provided" });
     }
     const decode = jwt.verify(token, config.JWT.secret);
-    // console.log("decode", decode);
+    // ("decode", decode);
     req.email = decode.email;
     req.userId = decode.userId;
     next();
@@ -23,7 +25,9 @@ export const protectRoute = (req, res, next) => {
     }
 
     if (error.name === "NotBeforeError") {
-      return res.status(401).json({ message: "Unauthorized - Token not active yet" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - Token not active yet" });
     }
 
     return res.status(500).json({ message: "Internal server error!" });

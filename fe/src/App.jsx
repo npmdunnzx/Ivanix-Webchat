@@ -15,7 +15,7 @@ function App() {
         <Route path="/login" element={<AuthPage />} />
         <Route path="/signup" element={<AuthPage />} />
 
-        {/* <Route element={<LayoutPage />}> */}
+        <Route element={<LayoutPage />}>
           <Route path="/chat" element={<Chat />} />
           {/* <Route path="/settings" element={<Settings />} /> */}
           {/* <Route path="/search" element={<Search />} /> */}
@@ -24,7 +24,7 @@ function App() {
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/chat" replace />} />
-        {/* </Route> */}
+        </Route>
       </Routes>
     </BrowserRouter>
   );

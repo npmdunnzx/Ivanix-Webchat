@@ -73,7 +73,7 @@ function AuthPage() {
     e.preventDefault();
     const response = await authService.login(loginData, loginData.rememberMe);
     if (response.success) {
-      setUserInfo(response.data);
+      setUserInfo(response.data.user);
       navigate("/chat");
     }
     else {

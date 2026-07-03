@@ -8,6 +8,9 @@ import db from "./db.config.js";
 import {socketAuth} from "../middlewares/socketAuth.js";
 import authRoutes from "../routes/auth.routes.js";
 import userRoutes from "../routes/user.routes.js";
+import convRoutes from "../routes/conversation.routes.js";
+import messRoutes from "../routes/message.routes.js";
+import {registerSocketHandlers} from "../sockets/index.js";
 
 const app = express();
 app.use(express.json());
@@ -19,6 +22,8 @@ app.use(cors({
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/conversations", convRoutes);
+app.use("/api/messages", messRoutes);
 
 const httpServer = createServer(app);
 
@@ -33,27 +38,8 @@ const io = new Server(httpServer, {
 
 io.use(socketAuth);
 
-const userSocketMap={};
-io.on("connection",(socket)=>{
-    const userId=socket.userId;
-    console.log("A user connected", userId);
-    console.log("Client connected:", socket.id);
-    userSocketMap[userId]=userSocketMap[userId]||[];
-    userSocketMap[userId].push(socket.id);
-
-    io.emit("getOnlineUsers",Object.keys(userSocketMap));
-    console.log("Online users:",Object.keys(userSocketMap));
-    socket.on("disconnect",()=>{
-        console.log("A user disconnected", socket.userId);
-        userSocketMap[userId]=userSocketMap[userId].filter(id=>id!==socket.id);
-        if (userSocketMap[userId].length===0){
-            delete userSocketMap[userId];
-        }
-       io.emit("getOnlineUsers",Object.keys(userSocketMap));
-    })
+io.on("connection", (socket) => {
+    registerSocketHandlers(io, socket);
 })
- function getUserSockets(userId){
-    return userSocketMap[userId];
-}
 
 export {io, httpServer, app};

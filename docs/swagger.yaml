@@ -1,0 +1,378 @@
+openapi: 3.0.3
+info:
+  title: Web Chat Realtime API
+  version: 1.0.0
+  description: REST API contract for the current Web Chat Realtime backend.
+servers:
+  - url: http://localhost:4000/api
+tags:
+  - name: Auth
+  - name: User
+  - name: Conversations
+  - name: Messages
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: jwt
+  schemas:
+    AuthSignupRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        rememberMe:
+          type: boolean
+          default: false
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        avatar_url:
+          type: string
+          nullable: true
+    UserSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+    ConversationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [private, group]
+        name:
+          type: string
+          nullable: true
+        last_message_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_message_sender_id:
+          type: string
+          format: uuid
+          nullable: true
+        last_message_id:
+          type: string
+          format: uuid
+          nullable: true
+        unread_count:
+          type: integer
+        last_message_content:
+          type: string
+          nullable: true
+        last_message_type:
+          type: string
+          nullable: true
+        partner_id:
+          type: string
+          format: uuid
+          nullable: true
+        partner_username:
+          type: string
+          nullable: true
+        partner_avatar:
+          type: string
+          nullable: true
+    PrivateChatRequest:
+      type: object
+      required: [partnerId]
+      properties:
+        partnerId:
+          type: string
+          format: uuid
+    GroupChatRequest:
+      type: object
+      required: [groupName, membersId]
+      properties:
+        groupName:
+          type: string
+        membersId:
+          type: array
+          items:
+            type: string
+            format: uuid
+    AddMembersRequest:
+      type: object
+      required: [conversation_id, membersId]
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        membersId:
+          type: array
+          items:
+            type: string
+            format: uuid
+    MessageCreateRequest:
+      type: object
+      required: [conversationId, content]
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        messageType:
+          type: string
+          description: Accepted by the controller payload; current service persistence is text-first.
+        fileUrl:
+          type: string
+          nullable: true
+        fileName:
+          type: string
+          nullable: true
+        clientOffset:
+          type: string
+          nullable: true
+    MessageItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        server_offset:
+          type: integer
+          format: int64
+        content:
+          type: string
+          nullable: true
+        message_type:
+          type: string
+        file_url:
+          type: string
+          nullable: true
+        file_name:
+          type: string
+          nullable: true
+        sender_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        is_deleted:
+          type: boolean
+        sender_username:
+          type: string
+          nullable: true
+        sender_avt:
+          type: string
+          nullable: true
+paths:
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: Create new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthSignupRequest'
+      responses:
+        '201':
+          description: User created successfully
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '201':
+          description: Login successfully
+  /user/me:
+    get:
+      tags: [User]
+      summary: Get current profile
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  /user/search:
+    get:
+      tags: [User]
+      summary: Search users by keyword
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: keyword
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSearchResult'
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: List conversations of current user
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationItem'
+  /conversations/private:
+    post:
+      tags: [Conversations]
+      summary: Create or get private conversation
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateChatRequest'
+      responses:
+        '200':
+          description: Existing chat returned
+        '201':
+          description: Private chat created
+  /conversations/groups:
+    post:
+      tags: [Conversations]
+      summary: Create group conversation
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupChatRequest'
+      responses:
+        '201':
+          description: Group created
+  /conversations/groups/members:
+    post:
+      tags: [Conversations]
+      summary: Add members to a group conversation
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMembersRequest'
+      responses:
+        '200':
+          description: Members added
+  /conversations/groups/search:
+    get:
+      tags: [Conversations]
+      summary: Search groups by name
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: name
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group search result
+  /messages:
+    get:
+      tags: [Messages]
+      summary: Get messages by conversation
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: conversationId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MessageItem'
+    post:
+      tags: [Messages]
+      summary: Create a new message
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreateRequest'
+      responses:
+        '201':
+          description: Message created

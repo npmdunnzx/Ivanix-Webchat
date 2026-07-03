@@ -1,69 +1,229 @@
 import React, { useEffect, useMemo, useRef, useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext.jsx";
-import {socket} from "../services/socket.js";
+import { Plus, Users, Search, Info } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { SocketContext } from "../context/SocketContext.jsx";
-import LayoutPage from "../components/LayoutPage.jsx";
 import "../assets/styles/chat.css";
-import { useNavigate } from "react-router-dom";
+import convService from "../services/conversation.service.js";
+import messService from "../services/message.service.js";
+import ChatInfo from "../components/ChatInfo.jsx";
+// import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime.js";
+import "dayjs/locale/vi.js";
+
+dayjs.extend(relativeTime);
+dayjs.locale("vi");
+
+function findZeroUnreadConversation(conversations) {
+  return conversations.find((conv) => conv.unread_count === 0);
+}
 
 function Chat() {
   const { userInfo } = useContext(AuthContext);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const counterRef = useRef(0);
   const messagesRef = useRef(null);
   const { socket } = useContext(SocketContext);
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [isChatInfoOpen, setIsChatInfoOpen] = useState(true);
 
+  // Fetch conversations
   useEffect(() => {
-    socket.on("chat message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
+    const fetchConversations = async () => {
+      try {
+        const convs = await convService.getAllConversations();
+        setConversations(convs.data);
+        setSelectedConversation(findZeroUnreadConversation(convs.data) || convs.data[0]);
+        // console.log("data:", convs.data);
+        console.log("conversations:", findZeroUnreadConversation(convs.data));
+      } catch (error) {
+        console.error("Could not fetch conversations:", error.message);
+      }
+    };
+
+    fetchConversations();
+  }, []);
+
+  // Join and leave conversation rooms
+  useEffect(() => {
+    if (!conversations.length) return;
+
+    conversations.forEach((conv) => {
+      socket.emit("conversation:join", conv.id);
     });
 
     return () => {
-      socket.off("chat message");
+      conversations.forEach((conv) => {
+        socket.emit("conversation:leave", conv.id);
+      });
     };
-  }, [socket]);
+  }, [socket, conversations.length, conversations]);
 
+  // Fetch messages
+  useEffect(() => {
+    if (!selectedConversation?.id) return;
+
+    const fetchMessages = async () => {
+      const msgs = await messService.getMessages(selectedConversation.id);
+      console.log("msgs:", msgs);
+      setMessages(msgs.data || []);
+    };
+
+    fetchMessages();
+  }, [selectedConversation?.id]);
+
+  // Listen for new messages
+  useEffect(() => {
+    const handleNewMessage = (msg) => {
+      setMessages((prev) =>
+        msg.conversation_id === selectedConversation?.id ? [...prev, msg] : prev,
+      );
+
+      setConversations((prevConvs) => {
+        const updatedConvs = prevConvs.map((conv) =>
+          conv.id === msg.conversation_id
+            ? {
+                ...conv,
+                last_message_content: msg.content,
+                last_message_at: msg.created_at,
+                last_message_sender_id: msg.sender_id,
+                unread_count:
+                  msg.conversation_id === selectedConversation?.id ||
+                  msg.sender_id === userInfo?.id
+                    ? 0
+                    : (conv.unread_count || 0) + 1,
+              }
+            : conv,
+        );
+
+        return updatedConvs.sort((a, b) =>
+            new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0),
+        );
+      });
+    };
+
+    socket.on("message:new", handleNewMessage);
+
+    return () => {
+      socket.off("message:new", handleNewMessage);
+    };
+  }, [socket, selectedConversation?.id, userInfo]);
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
   }, [messages]);
 
+  const handleSelectConversation = (conv) => {
+    setSelectedConversation(conv);
+    setConversations((prevConvs) =>
+      prevConvs.map((c) =>
+        conv.id === c.id ? { ...conv, unread_count: 0 } : c,
+      ),
+    );
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim() === "") return;
-    socket.emit("chat message", input);
+    socket.emit("message:send", {
+      conversationId: selectedConversation.id,
+      content: input,
+      clientOffset: crypto.randomUUID(),
+      senderId: userInfo.id,
+    });
     setInput("");
   };
 
   return (
     <div className="chat-page">
-      <LayoutPage />
+      <motion.aside
+        initial={{ width: 0, opacity: 0 }}
+        animate={{ width: 256, opacity: 1 }}
+        exit={{ width: 0, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="messages-panel"
+      >
+        <div className="messages-header">
+          <div className="messages-title-row">
+            <h2>Tin nhắn</h2>
+            <button className="messages-add-button">
+              <Plus size={20} />
+            </button>
+          </div>
+          <div className="messages-search">
+            <Search size={16} />
+            <input placeholder="Tìm tin nhắn..." />
+          </div>
+        </div>
 
-      <div className="chat-container">
-        <ul id="messages" ref={messagesRef}>
-          {messages.map((msg, index) => (
-            <li
-              key={msg.serverOffset || index}
-              className={msg.mine ? "mine" : "other"}
+        <div className="channel-list">
+          {conversations.map((conv) => (
+            <button
+              key={conv.id}
+              onClick={() => handleSelectConversation(conv)}
+              className={`channel-item ${conv.id === selectedConversation?.id ? "active" : ""}`}
             >
-              {msg.text}
-            </li>
+              <div className="channel-avatar">
+                <Users size={18} />
+                {conv.unread_count > 0 && (
+                  <span className="unread-dot">{conv.unread_count}</span>
+                )}
+              </div>
+              <div className="channel-content">
+                <div className="channel-heading">
+                  <p className={`${conv.unread_count > 0 ? "unread" : ""}`}>
+                    {conv.name || conv.partner_username}
+                  </p>
+                  <span>{dayjs(conv.last_message_at).fromNow()}</span>
+                </div>
+                <p className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}>
+                  {conv.last_message_content}
+                </p>
+              </div>
+            </button>
           ))}
-        </ul>
+        </div>
+      </motion.aside>
+      <div className="chat-container">
+        <div className="chat-header">
+          <span>{selectedConversation?.partner_avatar || <Users size={24} />}</span>
+          <h2>{selectedConversation?.name || selectedConversation?.partner_username}</h2>
+          <span className="online-dot"></span>
+          <button className="chat-info-button" onClick={() => setIsChatInfoOpen(!isChatInfoOpen)}>
+            <Info size={20} />
+          </button>
+        </div>
+        <div className="chat-content">
+          <ul id="messages" ref={messagesRef}>
+            {messages.map((msg, index) => (
+              <li
+                key={msg.server_offset || msg.client_offset || index}
+                className={msg.sender_id === userInfo.id ? "mine" : "other"}
+              >
+                {msg.content}
+              </li>
+            ))}
+          </ul>
 
-        <form id="form" onSubmit={handleSubmit}>
-          <input
-            id="input"
-            autoComplete="off"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <button type="submit">Send</button>
-        </form>
+          <form id="form" onSubmit={handleSubmit}>
+            <input
+              id="input"
+              autoComplete="off"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+            <button type="submit">Send</button>
+          </form>
+        </div> 
       </div>
+      <ChatInfo conversation={selectedConversation} isOpen={isChatInfoOpen} />
     </div>
   );
 }

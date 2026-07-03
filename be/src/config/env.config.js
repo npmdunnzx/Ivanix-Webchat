@@ -20,7 +20,13 @@ const config = {
   },
   BCRYPT : {
     saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
-  }
+  },
+  CLOUDINARY: {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  },
+  STORAGE: process.env.STORAGE_TYPE || "local",
 };
 
 export default config;

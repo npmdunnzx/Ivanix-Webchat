@@ -8,7 +8,6 @@ const countTodayBooking = (bookings) => {
 };
 
 const generateToken = (email, userId, rememberMe, res) => {
-  // console.log();
   
   const token = jwt.sign({ email, userId }, config.JWT.secret, {
     expiresIn: rememberMe ? "30d" : config.JWT.expiresIn,

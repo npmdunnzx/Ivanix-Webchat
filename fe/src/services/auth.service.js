@@ -1,5 +1,4 @@
 import authApi from "../apis/auth.apis.js";
-import { createContext, useState, useEffect } from "react";
 import { socket } from "./socket.js";
 
 const signup = async (userInfo) => {

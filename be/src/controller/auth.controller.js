@@ -35,6 +35,4 @@ const logout = async ( _, res) => {
 }
 
 
-
-
 export default {signup, login, logout};

@@ -1,0 +1,40 @@
+.chat-info {
+    flex: 0.5;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+    align-items: center;
+}
+.hidden {
+    display: none;
+}
+
+.detail-info-chat {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.avatar-info {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 1rem ;
+    border: 1px solid var(--sidebar-border);
+}
+
+.name-info {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.member-info {
+    width: 100%;
+    border-top: 1px solid var(--sidebar-border);
+    margin-top: 1rem;
+    padding: 1rem;
+}

@@ -98,3 +98,10 @@ ON users
 
 USING gin (username gin_trgm_ops); 
 
+ALTER TABLE conversations
+ADD COLUMN participant_key TEXT;
+
+CREATE UNIQUE INDEX idx_conversations_participant_key
+ON conversations(participant_key)
+WHERE participant_key IS NOT NULL;
+

@@ -19,6 +19,15 @@ const connect = async () => {
   }
 };
 
+const getClient = async () => {
+  try {
+    return await pool.connect();
+  } catch (error) {
+    console.error("Error getting database client:", error);
+    throw error;
+  }
+};
+
 const query = async (text, params) => {
   try {
     const res = await pool.query(text, params);
@@ -29,4 +38,4 @@ const query = async (text, params) => {
   }
 };
 
-export default { connect, query };
+export default { connect, getClient, query };

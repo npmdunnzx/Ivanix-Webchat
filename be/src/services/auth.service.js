@@ -52,8 +52,5 @@ const login = async (email, password) => {
     }
 }
 
-// const logout = async () =>  {
-
-// }
 
 export default { signup, login };

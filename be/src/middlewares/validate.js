@@ -1,4 +1,4 @@
-import { body, validationResult } from "express-validator";
+import { body, param, validationResult } from "express-validator";
 
 const signupRule = () => {
   return [
@@ -56,4 +56,44 @@ const validate = (req, res, next) => {
   }
   next();
 };
-export { loginRule, signupRule, validate, resetPassword };
+
+const newGroupChatRule = () => {
+  return [
+    body("groupName")
+      .notEmpty()
+      .withMessage("Group name is required")
+      .trim()
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Group name must be between 3 and 50 characters"),
+    body("membersId")
+      .isArray({ min: 2 })
+      .withMessage("Group must have at least 2 other members"),
+    body("membersId.*")
+      .isUUID()
+      .withMessage("Each member id must be a valid UUID"),
+  ];
+};
+
+const addMembersRule = () => {
+  return [
+    body("conversation_id").isUUID().withMessage("Invalid conversation id"),
+    body("membersId")
+      .isArray({ min: 1 })
+      .withMessage("membersId must be a non-empty array"),
+    body("membersId.*")
+      .isUUID()
+      .withMessage("Each member id must be a valid UUID"),
+  ];
+};
+
+const startConversationRule = () => {
+  return [
+    body("partnerId")
+      .notEmpty()
+      .withMessage("partnerId is required")
+      .isUUID()
+      .withMessage("partnerId must be a valid UUID"),
+  ];
+};
+
+export { loginRule, signupRule, validate, resetPassword, newGroupChatRule, addMembersRule, startConversationRule};
