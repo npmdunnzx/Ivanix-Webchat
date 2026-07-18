@@ -15,13 +15,13 @@ const profile = async (req, res) => {
 }
 
 const search = async (req, res) => {
-    const id = req.query.id;
+    const id = req.userId;
     const keyword = req.query.keyword;
     try {
         const result = await userService.search(id, keyword);
         res.status(200).json(result);
     } catch (error) {
-        res.status(500).json({message: "Internal server error",error: err.message});
+        res.status(500).json({message: "Internal server error",error: error.message});
     }
 }
 

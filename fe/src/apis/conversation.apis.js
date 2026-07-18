@@ -26,10 +26,15 @@ const checkExistChat = async (partnerId) => {
     return response.data;
 }
 
-const searchGroupByName = async (name) => {
-    const response = await axiosClient.get(`/conversations/groups/search?name=${name}`);
+const searchConversation = async (name) => {
+    const response = await axiosClient.get(`/conversations/search?name=${name}`);
+    return response.data;
+}
+
+const getGroupMembers = async (conversation_id) => {
+    const response = await axiosClient.get(`/conversations/groups/${conversation_id}/members`);
     return response.data;
 }
 
 
-export default {getAllConversations, newGroupChat, addNewMembers, checkExistChat, searchGroupByName};
+export default {getAllConversations, newGroupChat, addNewMembers, checkExistChat, searchConversation, getGroupMembers};

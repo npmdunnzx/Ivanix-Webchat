@@ -7,7 +7,12 @@ const getAllConversations = async (req, res) => {
   const userId = req.userId;
   try {
     const conversations = await convService.getAllConversations(userId);
-    res.status(200).json(conversations);
+    res
+      .status(200)
+      .json({
+        message: "Conversations fetched successfully",
+        result: conversations,
+      });
   } catch (err) {
     console.error("Could not get conversations:", err.message);
     res
@@ -29,7 +34,7 @@ const newGroupChat = async (req, res) => {
       .status(201)
       .json({ message: "Group chat created successfully", result });
   } catch (error) {
-    console.error("Could not create group chat:", error.message);
+    console.error("Could not create group chat:" + error.message);
     res
       .status(500)
       .json({ message: "Could not create group chat:", error: error.message });
@@ -42,7 +47,7 @@ const addNewMembers = async (req, res) => {
     const result = await convService.addNewMembers(conversation_id, membersId);
     res.status(200).json({ message: "Members added successfully", result });
   } catch (error) {
-    console.error("Could not add members:", error.message);
+    console.error("Could not add members:" + error.message);
     res
       .status(500)
       .json({ message: "Could not add members", error: error.message });
@@ -63,7 +68,7 @@ const addNewMembers = async (req, res) => {
 //       .status(201)
 //       .json({ message: "Private chat created successfully", result });
 //   } catch (error) {
-//     console.error("Could not create private chat:", error.message);
+//     console.error("Could not create private chat:"+ error.message);
 //     res
 //       .status(500)
 //       .json({ message: "Could not create private chat", error: error.message });
@@ -72,7 +77,7 @@ const addNewMembers = async (req, res) => {
 
 const checkExistChat = async (req, res) => {
   const userId = req.userId;
-  const { partnerId } = req.body;  
+  const { partnerId } = req.body;
   try {
     const result = await convService.checkExistChat(userId, partnerId);
     if (result.created === false) {
@@ -83,28 +88,42 @@ const checkExistChat = async (req, res) => {
         .json({ message: "Private chat created successfully", result });
     }
   } catch (error) {
-    console.error("Could not check chat existence:", error.message);
-    res
-      .status(500)
-      .json({
-        message: "Could not check chat existence",
-        error: error.message,
-      });
+    console.error("Could not check chat existence:" + error.message);
+    res.status(500).json({
+      message: "Could not check chat existence",
+      error: error.message,
+    });
   }
 };
 
-const searchGroupByName = async (req, res) => {
-  const name = req.query.q || req.query.name;
+const searchConversation = async (req, res) => {
+  const name = req.query.name;
   const userId = req.userId;
 
   try {
-    const result = await convService.searchGroupByName(userId, name);
-    res.status(200).json({ message: "Search group successfully", result });
+    const result = await convService.searchConversation(userId, name);
+    res
+      .status(200)
+      .json({ message: "Search conversation successfully", result });
   } catch (error) {
-    console.error("Could not search group:", error.message);
+    console.error("Could not search conversation:" + error.message);
     res
       .status(500)
-      .json({ message: "Could not search group", error: error.message });
+      .json({ message: "Could not search conversation", error: error.message });
+  }
+};
+
+const getGroupMembers = async (req, res) => {
+  const conversation_id = req.params.conversation_id;
+
+  try {
+    const result = await convService.getGroupMembers(conversation_id);
+    res.status(200).json({ message: "Get group members successfully", result });
+  } catch (error) {
+    console.error("Could not get group members:" + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not get group members", error: error.message });
   }
 };
 
@@ -112,7 +131,8 @@ export default {
   getAllConversations,
   newGroupChat,
   addNewMembers,
+  getGroupMembers,
   // newPrivateChat,
   checkExistChat,
-  searchGroupByName,
+  searchConversation,
 };

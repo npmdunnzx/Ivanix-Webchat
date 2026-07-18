@@ -250,3 +250,164 @@ Current project status:
 - User profile and search are implemented.
 - Realtime online-user tracking is implemented.
 - Conversation/message/upload features are documented in the SRS and can be added next.
+
+
+## 🛠️ Setup Redis (Dành riêng cho Git Bash trên Windows)
+
+Chạy các khối lệnh dưới đây trực tiếp vào Terminal Git Bash của bạn để quản lý Redis thông qua Docker.
+
+### 1. Khởi tạo và chạy lần đầu tiên
+
+```bash
+# Khởi động dịch vụ Docker Engine chạy ẩn dưới nền (Không mở UI)
+# cmd.exe /c "start /B "" "C:\Program Files\Docker\Docker\Docker Desktop.exe""
+
+# (Đợi khoảng 5-10 giây cho Docker khởi động) rồi tải và chạy container Redis
+docker run -d --name redis -p 6379:6379 redis
+
+# Kiểm tra lại xem container "redis" đã chạy thành công chưa
+docker ps
+
+# Bật nhanh Redis để bắt đầu code (Nếu Docker Engine chưa chạy, chạy lại lệnh khởi động ở mục 1 trước)
+docker start redis
+
+# Tắt Redis khi đã code xong để giải phóng RAM cho máy
+docker stop redis
+
+# Xem danh sách các container đang hoạt động
+docker ps
+
+1. Xem các socket đang mở của bạn (Kiểu Set)
+Gõ lệnh sau để xem danh sách các ID socket ứng với các tab bạn đang mở:
+
+Bash
+smembers "user:connections:5e21449a-8dc1-41e5-a08d-6f63e4f2a42d"
+2. Xem chi tiết trạng thái Online (Kiểu Hash)
+Gõ lệnh này để in ra các cặp trường lẻ-chẵn (status và last_active) như bạn vừa nhận xạ lúc nãy:
+
+Bash
+hgetall "user:presence:5e21449a-8dc1-41e5-a08d-6f63e4f2a42d"
+3. Xem danh sách tổng hợp những người online (Kiểu Sorted Set)
+Gõ lệnh này để xem tất cả userId đang online kèm theo điểm số timestamp hoạt động mới nhất của họ:
+
+Bash
+zrange "presence:online_users" 0 -1 withedscores
+(Nếu bản Redis cũ báo lỗi chữ withedscores, bạn chỉ cần đổi thành withscores là được).
+```
+Webchat
+├─ be
+│  ├─ .env
+│  ├─ chat.sql
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ server.js
+│  └─ src
+│     ├─ config
+│     │  ├─ cloudinary.config.js
+│     │  ├─ db.config.js
+│     │  ├─ env.config.js
+│     │  ├─ redis.config.js
+│     │  └─ server.config.js
+│     ├─ controller
+│     │  ├─ auth.controller.js
+│     │  ├─ conversation.controller.js
+│     │  ├─ friend.controller.js
+│     │  ├─ message.controller.js
+│     │  └─ user.controller.js
+│     ├─ middlewares
+│     │  ├─ checkGroupChat.js
+│     │  ├─ protectRoute.js
+│     │  ├─ socketAuth.js
+│     │  ├─ validate.js
+│     │  ├─ verifyResetPassword.js
+│     │  └─ verifySignup.js
+│     ├─ routes
+│     │  ├─ auth.routes.js
+│     │  ├─ conversation.routes.js
+│     │  ├─ friend.routes.js
+│     │  ├─ message.routes.js
+│     │  └─ user.routes.js
+│     ├─ services
+│     │  ├─ auth.service.js
+│     │  ├─ conversation.service.js
+│     │  ├─ friend.service.js
+│     │  ├─ message.service.js
+│     │  ├─ recommendation.service.js
+│     │  └─ user.service.js
+│     ├─ sockets
+│     │  ├─ conversation.socket.js
+│     │  ├─ index.js
+│     │  ├─ message.socket.js
+│     │  └─ presence.socket.js
+│     └─ utils
+│        ├─ presenceWorker.js
+│        └─ utils.js
+├─ docs
+│  ├─ API_DOC.md
+│  ├─ project_gap_assessment_plan.md
+│  ├─ redis_presence_recommendation_plan.md
+│  ├─ SRS_Webchat_realtime.md
+│  └─ swagger.yaml
+├─ fe
+│  ├─ dist
+│  │  ├─ assets
+│  │  │  ├─ auth-B-v2zKgs.png
+│  │  │  ├─ index-BHrthtCa.js
+│  │  │  ├─ index-iHXt8V8i.css
+│  │  │  ├─ logoauth-fBtg_yNQ.png
+│  │  │  └─ user_avatar-Bzrj67bo.png
+│  │  └─ public
+│  │     └─ index.html
+│  ├─ eslint.config.js
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ public
+│  │  └─ index.html
+│  ├─ src
+│  │  ├─ apis
+│  │  │  ├─ auth.apis.js
+│  │  │  ├─ axiosClient.js
+│  │  │  ├─ conversation.apis.js
+│  │  │  ├─ message.apis.js
+│  │  │  └─ user.apis.js
+│  │  ├─ App.jsx
+│  │  ├─ assets
+│  │  │  ├─ images
+│  │  │  │  ├─ auth.png
+│  │  │  │  ├─ logoauth.png
+│  │  │  │  └─ user_avatar.png
+│  │  │  └─ styles
+│  │  │     ├─ auth.css
+│  │  │     ├─ chat.css
+│  │  │     ├─ chatinfo.css
+│  │  │     ├─ contacts.css
+│  │  │     ├─ layout.css
+│  │  │     ├─ sidebar.css
+│  │  │     ├─ storage.css
+│  │  │     └─ userinfo.css
+│  │  ├─ components
+│  │  │  ├─ ChatInfo.jsx
+│  │  │  ├─ LayoutPage.jsx
+│  │  │  ├─ Sidebar.jsx
+│  │  │  └─ UserInfo.jsx
+│  │  ├─ context
+│  │  │  ├─ AuthContext.jsx
+│  │  │  └─ SocketContext.jsx
+│  │  ├─ main.jsx
+│  │  ├─ pages
+│  │  │  ├─ AuthPage.jsx
+│  │  │  ├─ Chat.jsx
+│  │  │  ├─ Contacts.jsx
+│  │  │  └─ Storage.jsx
+│  │  ├─ services
+│  │  │  ├─ auth.service.js
+│  │  │  ├─ conversation.service.js
+│  │  │  ├─ message.service.js
+│  │  │  ├─ socket.js
+│  │  │  └─ user.service.js
+│  │  └─ utils
+│  └─ vite.config.js
+├─ implementation_guide.md
+└─ README.md
+
+```

@@ -1,4 +1,4 @@
-import userAPI from "../api/user.api";
+import userApi from "../apis/user.apis.js";
 
 const profile = async (email) => {
     const response = {
@@ -7,7 +7,7 @@ const profile = async (email) => {
         data: null,
     }
     try {
-        const data = await userAPI.profile(email);
+        const data = await userApi.profile(email);
         response.data = data;
         return response;
     } catch (error) {
@@ -20,14 +20,14 @@ const profile = async (email) => {
     }
 };
 
-const search = async (userId, keyword) => {
+const search = async (keyword) => {
     const response = {
         success: true,
         listErr: [],
         data: null,
     }
     try {
-        const data = await userAPI.search(userId, keyword);
+        const data = await userApi.search(keyword);
         response.data = data;
         return response;
     } catch (error) {

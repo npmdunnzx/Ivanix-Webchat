@@ -10,6 +10,8 @@ import authRoutes from "../routes/auth.routes.js";
 import userRoutes from "../routes/user.routes.js";
 import convRoutes from "../routes/conversation.routes.js";
 import messRoutes from "../routes/message.routes.js";
+import friendRoutes from "../routes/friend.routes.js";
+import recommendationRoutes from "../routes/recommendation.routes.js";
 import {registerSocketHandlers} from "../sockets/index.js";
 
 const app = express();
@@ -24,7 +26,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/conversations", convRoutes);
 app.use("/api/messages", messRoutes);
-
+app.use("/api/friends", friendRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 const httpServer = createServer(app);
 
 

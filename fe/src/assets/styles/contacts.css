@@ -588,4 +588,123 @@
   .contacts-db-grid {
     grid-template-columns: 1fr;
   }
+
+  .recommendation-grid {
+    grid-template-columns: 1fr;
+  }
 }
+
+/* ── Recommendation section ── */
+.recommendation-section {
+  background: var(--sidebar-bg-low);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendation-section h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sidebar-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recommendation-section h3 svg {
+  color: var(--sidebar-primary);
+}
+
+.recommendation-empty {
+  text-align: center;
+  padding: 24px;
+  background: var(--sidebar-bg);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--sidebar-muted);
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* Card — giống contacts-db-card */
+.recommendation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 12px;
+  transition: border-color 160ms;
+}
+
+.recommendation-card:hover {
+  border-color: var(--sidebar-primary);
+}
+
+.recommendation-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.recommendation-info {
+  min-width: 0;
+}
+
+.recommendation-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.recommendation-username {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sidebar-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recommendation-email {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--sidebar-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Button — giống contacts-connect-btn */
+.recommendation-connect-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  background: var(--sidebar-primary);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 160ms, transform 100ms;
+}
+
+.recommendation-connect-btn:hover {
+  opacity: 0.88;
+  transform: scale(1.02);
+}

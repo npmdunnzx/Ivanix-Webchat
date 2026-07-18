@@ -11,6 +11,7 @@ import ChatInfo from "../components/ChatInfo.jsx";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
 import "dayjs/locale/vi.js";
+import debounce from "lodash.debounce";
 
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
@@ -24,7 +25,9 @@ function Chat() {
   // const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const counterRef = useRef(0);
+  const latestSearchId = useRef(0);
+  const searchRef = useRef(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const messagesRef = useRef(null);
   const { socket } = useContext(SocketContext);
   const [conversations, setConversations] = useState([]);
@@ -36,12 +39,17 @@ function Chat() {
     const fetchConversations = async () => {
       try {
         const convs = await convService.getAllConversations();
-        setConversations(convs.data);
-        setSelectedConversation(findZeroUnreadConversation(convs.data) || convs.data[0]);
+        setConversations(convs.data.result);
+        setSelectedConversation(
+          findZeroUnreadConversation(convs.data.result) || convs.data.result[0],
+        );
         // console.log("data:", convs.data);
-        console.log("conversations:", findZeroUnreadConversation(convs.data));
+        console.log(
+          "conversations:",
+          findZeroUnreadConversation(convs.data.result),
+        );
       } catch (error) {
-        console.error("Could not fetch conversations:", error.message);
+        console.error("Could not fetch conversations:" + error.message);
       }
     };
 
@@ -61,7 +69,7 @@ function Chat() {
         socket.emit("conversation:leave", conv.id);
       });
     };
-  }, [socket, conversations.length, conversations]);
+  }, [socket, conversations.length]);
 
   // Fetch messages
   useEffect(() => {
@@ -69,8 +77,8 @@ function Chat() {
 
     const fetchMessages = async () => {
       const msgs = await messService.getMessages(selectedConversation.id);
-      console.log("msgs:", msgs);
-      setMessages(msgs.data || []);
+      // console.log("msgs:", msgs);
+      setMessages(msgs.data.reverse() || []);
     };
 
     fetchMessages();
@@ -80,7 +88,9 @@ function Chat() {
   useEffect(() => {
     const handleNewMessage = (msg) => {
       setMessages((prev) =>
-        msg.conversation_id === selectedConversation?.id ? [...prev, msg] : prev,
+        msg.conversation_id === selectedConversation?.id
+          ? [...prev, msg]
+          : prev,
       );
 
       setConversations((prevConvs) => {
@@ -100,7 +110,8 @@ function Chat() {
             : conv,
         );
 
-        return updatedConvs.sort((a, b) =>
+        return updatedConvs.sort(
+          (a, b) =>
             new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0),
         );
       });
@@ -127,6 +138,34 @@ function Chat() {
         conv.id === c.id ? { ...conv, unread_count: 0 } : c,
       ),
     );
+  };
+
+  useEffect(() => {
+    searchRef.current = debounce(async (keyword) => {
+      const requestId = ++latestSearchId.current;
+      try {
+        const result = keyword.trim()
+          ? await convService.searchConversation(keyword)
+          : await convService.getAllConversations();
+
+        if (requestId !== latestSearchId.current) return;
+        // console.log("Search result:", result.data.result);
+        setConversations(result.data.result);
+      } catch (error) {
+        console.error("Error searching conversations:" + error.message);
+      }
+    }, 1000);
+
+    return () => searchRef.current.cancel();
+  }, []);
+
+  // Gọi hàm debounce mỗi khi searchKeyword đổi
+  useEffect(() => {
+    searchRef.current?.(searchKeyword);
+  }, [searchKeyword]);
+
+  const handleInputChange = (e) => {
+    setSearchKeyword(e.target.value);
   };
 
   const handleSubmit = (e) => {
@@ -159,44 +198,68 @@ function Chat() {
           </div>
           <div className="messages-search">
             <Search size={16} />
-            <input placeholder="Tìm tin nhắn..." />
+            <input
+              placeholder="Tìm tin nhắn..."
+              value={searchKeyword}
+              onChange={handleInputChange}
+            />
           </div>
         </div>
 
         <div className="channel-list">
-          {conversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => handleSelectConversation(conv)}
-              className={`channel-item ${conv.id === selectedConversation?.id ? "active" : ""}`}
-            >
-              <div className="channel-avatar">
-                <Users size={18} />
-                {conv.unread_count > 0 && (
-                  <span className="unread-dot">{conv.unread_count}</span>
-                )}
-              </div>
-              <div className="channel-content">
-                <div className="channel-heading">
-                  <p className={`${conv.unread_count > 0 ? "unread" : ""}`}>
-                    {conv.name || conv.partner_username}
-                  </p>
-                  <span>{dayjs(conv.last_message_at).fromNow()}</span>
+          {conversations.length > 0 ? (
+            conversations.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => handleSelectConversation(conv)}
+                className={`channel-item ${conv.id === selectedConversation?.id ? "active" : ""}`}
+              >
+                <div className="channel-avatar">
+                  <Users size={18} />
+                  {conv.unread_count > 0 && (
+                    <span className="unread-dot">{conv.unread_count}</span>
+                  )}
                 </div>
-                <p className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}>
-                  {conv.last_message_content}
-                </p>
-              </div>
-            </button>
-          ))}
+                <div className="channel-content">
+                  <div className="channel-heading">
+                    <p className={`${conv.unread_count > 0 ? "unread" : ""}`}>
+                      {conv.name || conv.partner_username}
+                    </p>
+                    <span>{dayjs(conv.last_message_at).fromNow()}</span>
+                  </div>
+                  <p
+                    className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}
+                  >
+                    {conv.last_message_content}
+                  </p>
+                </div>
+              </button>
+            ))
+          ) : (
+            <p className="no-conversations">Không có cuộc trò chuyện nào</p>
+          )}
         </div>
       </motion.aside>
       <div className="chat-container">
         <div className="chat-header">
-          <span>{selectedConversation?.partner_avatar || <Users size={24} />}</span>
-          <h2>{selectedConversation?.name || selectedConversation?.partner_username}</h2>
+          {selectedConversation?.partner_avatar ? (
+            <img
+              src={selectedConversation.partner_avatar}
+              alt={selectedConversation.partner_username}
+              className="avatar-info"
+            />
+          ) : (
+            <Users className="avatar-info" />
+          )}
+          <h2>
+            {selectedConversation?.name ||
+              selectedConversation?.partner_username}
+          </h2>
           <span className="online-dot"></span>
-          <button className="chat-info-button" onClick={() => setIsChatInfoOpen(!isChatInfoOpen)}>
+          <button
+            className="chat-info-button"
+            onClick={() => setIsChatInfoOpen(!isChatInfoOpen)}
+          >
             <Info size={20} />
           </button>
         </div>
@@ -221,7 +284,7 @@ function Chat() {
             />
             <button type="submit">Send</button>
           </form>
-        </div> 
+        </div>
       </div>
       <ChatInfo conversation={selectedConversation} isOpen={isChatInfoOpen} />
     </div>

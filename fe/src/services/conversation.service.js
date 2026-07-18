@@ -84,25 +84,46 @@ const checkExistChat = async (partnerId) => {
     return response;
 }
 
-const searchGroupByName = async (name) => {
+const searchConversation = async (keyword) => {
     const response = {
         success: true,
         listErr: [],
         data: null,
     };
     try {
-        const data = await convApi.searchGroupByName(name);
+        const data = await convApi.searchConversation(keyword);
         response.data = data;
     } catch (error) {
         response.success = false;
         if (error.response && error.response.status === 500) {
-            response.listErr.push({ path: "conversation", msg: "Could not search group chat" });
+            response.listErr.push({ path: "conversation", msg: "Could not search conversation" });
         }
         else {
-            console.error("Error searching group chat:", error);
+            console.error("Error searching conversation:", error);
         }
     }
     return response;
 }
 
-export default {getAllConversations, newGroupChat, addNewMembers, checkExistChat, searchGroupByName};
+const getGroupMembers = async (conversation_id) => {
+    const response = {
+        success: true,
+        listErr: [],
+        data: null,
+    };
+    try {
+        const data = await convApi.getGroupMembers(conversation_id);
+        response.data = data;
+    } catch (error) {
+        response.success = false;
+        if (error.response && error.response.status === 500) {
+            response.listErr.push({ path: "conversation", msg: "Could not get group members" });
+        }
+        else {
+            console.error("Error getting group members:", error);
+        }
+    }
+    return response;
+}
+
+export default {getAllConversations, newGroupChat, addNewMembers, checkExistChat, searchConversation, getGroupMembers};

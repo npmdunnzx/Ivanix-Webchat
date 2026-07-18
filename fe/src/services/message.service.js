@@ -10,7 +10,7 @@ const getMessages = async (conversationId) => {
     try {
         const data = await messApi.getMessages(conversationId);
         response.data = data;
-        console.log("data fe:", data);
+        // console.log("data fe:", data);
         
         return response;
     } catch (error) {

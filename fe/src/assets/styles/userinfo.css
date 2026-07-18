@@ -1,0 +1,41 @@
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.5rem;
+  background: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+  border: 2px solid var(--sidebar-border);
+  margin-bottom: 0.25rem;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--sidebar-border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--sidebar-bg);
+  color: var(--text-muted, #888);
+}
+
+.user-details {
+  flex: 6;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.user-details p {
+  margin: 0.15rem;
+  font-size: 0.875rem;
+  color: var(--text-color, #333);
+}

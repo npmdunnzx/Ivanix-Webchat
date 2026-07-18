@@ -24,4 +24,8 @@ const generateToken = (email, userId, rememberMe, res) => {
   return token;
 };
 
-export default { countTodayBooking, generateToken };
+function escapeLikePattern(str) {
+  return String(str).replace(/[%_\\]/g, (ch) => "\\" + ch);
+}
+
+export default { countTodayBooking, generateToken, escapeLikePattern };

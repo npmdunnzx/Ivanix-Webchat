@@ -5,10 +5,8 @@ const profile = async (email) => {
     return response.data;
 }
 
-const search = async (userId, keyword) => {
-    const response = await axiosClient.get("/user/search", {
-        userId, keyword
-    });
+const search = async (keyword) => {
+    const response = await axiosClient.get("/user/search?keyword=" + keyword);
     return response.data;
 }
 
