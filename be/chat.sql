@@ -251,3 +251,8 @@ ON friendships(user_id2, user_id1);
 
 CREATE INDEX idx_friend_requests_receiver_status
 ON friend_requests(receiver_id, status);
+
+-- Đảm bảo giữa 2 user chỉ tồn tại tối đa 1 pending request bất kể chiều nào
+CREATE UNIQUE INDEX idx_unique_pending_pair
+ON friend_requests (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id))
+WHERE status = 'pending';

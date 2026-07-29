@@ -409,5 +409,3 @@ Webchat
 │  └─ vite.config.js
 ├─ implementation_guide.md
 └─ README.md
-
-```

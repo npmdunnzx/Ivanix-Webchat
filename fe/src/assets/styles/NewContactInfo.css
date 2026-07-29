@@ -1,0 +1,114 @@
+.contacts-db-card {
+  display: flex;
+  width: 23%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 12px;
+  transition: border-color 160ms;
+}
+
+.contacts-db-card:hover {
+  border-color: var(--sidebar-primary);
+}
+
+.contacts-db-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.contacts-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.contacts-avatar-wrap img {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--sidebar-border);
+  display: block;
+}
+
+.contacts-status-dot {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--sidebar-bg);
+}
+
+.contacts-status-dot.online  { background: #22c55e; }
+.contacts-status-dot.offline { background: var(--sidebar-muted); }
+
+.contacts-db-info {
+  min-width: 0;
+}
+
+.contacts-db-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.contacts-db-username {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sidebar-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.contacts-db-email {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--sidebar-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contacts-connect-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  margin-top: 0.5rem;
+  background: var(--sidebar-primary);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 160ms, transform 100ms;
+}
+
+.contacts-connect-btn:hover {
+  opacity: 0.88;
+  transform: scale(1.02);
+}
+
+.contacts-connect-btn:active {
+  opacity: 0.88;
+  transform: scale(0.98);
+}
+
+.contacts-db-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-direction: column;
+}

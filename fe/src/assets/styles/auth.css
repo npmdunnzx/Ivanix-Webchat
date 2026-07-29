@@ -242,6 +242,17 @@
   padding: 14px 14px 14px 45px;
 }
 
+.form-group button  {
+  background-color: var(--auth-primary);
+  color: var(--auth-primary-text);
+  font-weight: bold;
+  cursor: pointer;;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
 #login-button {
   background-color: var(--auth-primary);
   cursor: pointer;

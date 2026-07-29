@@ -4,22 +4,30 @@ import config from "../config/env.config.js";
 const getMessages = async (
   conversationId,
   user_id,
-  befforeOffset = null,
+  beforeOffset = null,
   limit = 20,
 ) => {
   const query = `
-    SELECT m.id, m.server_offset, m.content, m.message_type, m.file_url,
-        m.file_name, m.sender_id, m.created_at, m.is_deleted,
-        u.username AS sender_username,
-        u.avatar_url AS sender_avt
-    FROM messages m
-    JOIN users u ON u.id = m.sender_id
-    WHERE m.conversation_id = $1
-        AND ($2::bigint IS NULL OR m.server_offset < $2)
-        AND m.is_deleted = FALSE
-    ORDER BY m.server_offset DESC
-    LIMIT $3`;
-
+    SELECT
+      m.id, m.server_offset, m.content, m.message_type, m.file_url,
+      m.file_name, m.sender_id, m.created_at, m.is_deleted,
+      u.username AS sender_username, u.avatar_url AS sender_avt
+  FROM messages m
+  JOIN users u
+      ON u.id = m.sender_id
+  JOIN conversation_members cm
+      ON cm.conversation_id = m.conversation_id
+    AND cm.user_id = $2
+  WHERE
+      m.conversation_id = $1
+      AND ($3::bigint IS NULL OR m.server_offset < $3)
+      AND m.is_deleted = FALSE
+      AND (
+          cm.cleared_history_at IS NULL
+          OR m.created_at > cm.cleared_history_at
+      )
+  ORDER BY m.server_offset DESC
+  LIMIT $4;`;
   const query2 = `
     UPDATE conversation_members
     SET unread_count = 0
@@ -30,7 +38,8 @@ const getMessages = async (
     await client.query("BEGIN");
     const { rows } = await client.query(query, [
       conversationId,
-      befforeOffset,
+      user_id,
+      beforeOffset,
       limit,
     ]);
 

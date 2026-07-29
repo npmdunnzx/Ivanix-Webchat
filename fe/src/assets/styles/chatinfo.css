@@ -1,12 +1,16 @@
 .chat-info {
   flex: 0.45;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   background-color: var(--sidebar-bg);
   align-items: center;
   border-left: 1px solid var(--sidebar-border);
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-bottom: 1.5rem;
   background: 
     radial-gradient(circle at 15% 0%, rgba(99, 14, 212, 0.08) 0%, transparent 50%),
     
@@ -43,11 +47,37 @@
   border: 1px solid var(--sidebar-border);
 }
 
+.chat-info-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+
 .name-info {
   font-size: 1rem;
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin: 0;
   text-align: center;
+  color: var(--sidebar-text, #0f172a);
+}
+
+.btn-edit-name {
+  background: transparent;
+  border: none;
+  color: var(--sidebar-muted, #64748b);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 140ms ease;
+}
+
+.btn-edit-name:hover {
+  background: var(--sidebar-bg-high, #e2e8f0);
+  color: var(--sidebar-primary, #123a4a);
 }
 
 .info-1 {
@@ -127,7 +157,8 @@
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.delete-chat {
+.delete-chat,
+.delete-group {
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: 1px dashed rgba(255, 0, 0, 0.3);

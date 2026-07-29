@@ -7,10 +7,15 @@ import Chat from "./pages/Chat.jsx";
 import Contacts from "./pages/Contacts.jsx";
 import Storage from "./pages/Storage.jsx";
 import LayoutPage from "./components/LayoutPage.jsx";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-right"
+        toastOptions={{ duration: 1000 }}
+      />
       <Routes>
         <Route path="/login" element={<AuthPage />} />
         <Route path="/signup" element={<AuthPage />} />

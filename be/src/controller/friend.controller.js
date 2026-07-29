@@ -24,6 +24,17 @@ const responseRequest = async (req, res) => {
     }
 }
 
+const cancelRequest = async (req, res) => {
+    const senderId = req.userId;
+    const { receiverId } = req.body;
+    try {
+        const response = await friendService.cancelRequest(senderId, receiverId);
+        res.status(200).json({ message: "Friend request canceled successfully", data: response });
+    } catch (error) {
+        res.status(400).json({ message: "Could not cancel friend request", error: error.message });
+    }
+}
+
 const getPendingRequest = async (req, res) => {
     const userId = req.userId;
     try {
@@ -46,9 +57,22 @@ const getFriends = async (req, res) => {
     }
 }
 
+const getMyRequests = async (req, res) => {
+    const userId = req.userId;
+    try {
+        const myRequests = await friendService.getMyRequests(userId);
+        res.status(200).json({ message: "My friend requests retrieved successfully", data: myRequests });
+    }
+    catch (error) {
+        res.status(500).json({ message: "Could not retrieve my friend requests", error: error.message });
+    }
+}
+
 export default {
     sendRequest,
     responseRequest,
+    cancelRequest,
     getPendingRequest,
-    getFriends
+    getFriends,
+    getMyRequests
 }

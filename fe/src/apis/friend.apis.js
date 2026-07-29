@@ -1,7 +1,7 @@
 import {axiosClient} from "./axiosClient.js";
 
-const sendRequest = async (targetId) => {
-    const response = await axiosClient.post("/friends/send-request", {targetId});
+const sendRequest = async (receiverId) => {
+    const response = await axiosClient.post("/friends/send-request", {receiverId});
     return response.data;
 }
 
@@ -20,9 +20,21 @@ const getFriends = async () => {
     return response.data;
 }
 
+const cancelRequest = async (receiverId) => {
+    const response = await axiosClient.post("/friends/cancel-request", {receiverId});
+    return response.data;
+}
+
+const getMyRequests = async () => {
+    const response = await axiosClient.get("/friends/my-requests");
+    return response.data;
+}
+
 export default {
     sendRequest,
     responseRequest,
+    cancelRequest,
+    getMyRequests,
     getPendingRequests,
     getFriends
 }

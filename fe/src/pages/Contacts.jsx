@@ -3,15 +3,11 @@ import {
   Users,
   Search as SearchIcon,
   MessageSquare,
-  Trash2,
   Sparkles,
   UserPlus,
   X,
-  Check,
-  AtSign,
   Clock,
-  ChevronDown,
-  ChevronUp,
+  MoreHorizontal
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "../assets/styles/contacts.css";
@@ -19,46 +15,82 @@ import user_avatar from "../assets/images/user_avatar.png";
 import recommendationService from "../apis/recommendation.apis.js";
 import friendService from "../services/friend.service.js";
 import userService from "../services/user.service.js";
-import {AuthContext} from "../context/AuthContext.jsx";
+import { AuthContext } from "../context/AuthContext.jsx";
 import debounce from "lodash.debounce";
+import NewContactInfo from "../components/NewContactInfo.jsx";
+
+const TABS = {
+  FRIENDS: 'friends',
+  ADD_FRIEND: 'add_friend',
+  RECEIVED_REQUESTS: 'received_requests',
+  SENT_REQUESTS: 'sent_requests',
+};
 
 export default function Contacts() {
-  const {userInfo} = useContext(AuthContext);
+  const { userInfo } = useContext(AuthContext);
   const [friends, setFriends] = useState([]);
   const latestSearchId = useRef(0);
   const searchRef = useRef(null);
-  const [searchKeyword, setSearchKeyword] = useState("");  
+  const [refreshKey, setRefreshKey] = useState(0);
+  const bumpRefresh = () => setRefreshKey((k) => k + 1);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [slideOpen, setSlideOpen] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
+  const [activeTab, setActiveTab] = useState(TABS.FRIENDS);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [myRequests, setMyRequests] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
         const getrecommendations = await recommendationService.getRecommendation(userInfo.id);
         setRecommendations(getrecommendations.data);
-        console.log("Fetched recommendations:", getrecommendations);
       } catch (error) {
         console.error("Error fetching recommendations:", error);
       }
     };
 
     fetchRecommendations();
-  }, [userInfo?.id]);
+  }, [userInfo?.id, refreshKey]);
 
   useEffect(() => {
     const fetchFriends = async () => {
       try {
         const getfriends = await friendService.getFriends(userInfo.id);
         setFriends(getfriends.data.data);
-        console.log("Fetched friends:", getfriends.data.data);
       } catch (error) {
         console.error("Error fetching friends:", error);
       }
     };
 
     fetchFriends();
-  }, [userInfo?.id]);
+  }, [userInfo?.id, refreshKey]);
+
+  useEffect(() => {
+    const getMyRequests = async () => {
+      try {
+        const result = await friendService.getMyRequests();
+        setMyRequests(result.data.data);
+      } catch (error) {
+        console.error("Error fetching my requests:", error);
+      }
+    };
+    getMyRequests();
+  }, [userInfo?.id, refreshKey]);
+
+  useEffect(() => {
+    const getPendingRequests = async () => {
+      try {
+        const result = await friendService.getPendingRequests();
+        setPendingRequests(result.data.data);
+      } catch (error) {
+        console.error("Error fetching pending requests:", error);
+      }
+    };
+
+    getPendingRequests();
+  }, [userInfo?.id, refreshKey]);
 
   useEffect(() => {
     searchRef.current = debounce(async (keyword) => {
@@ -68,16 +100,17 @@ export default function Contacts() {
       }
       const requestId = ++latestSearchId.current;
       try {
-        const result = keyword.trim() === "" ? [] : await userService.search(keyword);
+        const result = await userService.search(keyword);
         if (requestId !== latestSearchId.current) return;
         setSearchResults(result.data);
+        console.log("result", result.data);
       } catch (error) {
         console.error("Error searching users:", error.message);
       }
     }, 1000);
 
     return () => searchRef.current.cancel();
-  }, [userInfo?.id]);
+  }, [refreshKey]);
 
   useEffect(() => {
     searchRef.current?.(searchKeyword);
@@ -90,253 +123,210 @@ export default function Contacts() {
   return (
     <div className="contacts-page">
       <div className="contacts-inner">
-        {/* Header */}
-        <div className="contacts-header">
-          <div className="contacts-header-left">
-            <h1>
-              <Users size={26} />
-              Danh bạ
-            </h1>
-          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setSlideOpen((v) => !v)}
-            className={`contacts-add-btn ${slideOpen ? "open" : "closed"}`}
-          >
-            {slideOpen ? <X size={14} /> : <UserPlus size={14} />}
-            {slideOpen ? "Đóng bảng tìm kiếm" : "Thêm bạn mới"}
-            {slideOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </motion.button>
+        {/* Navigation Tabs */}
+        <div className="contacts-nav-container">
+          <div className="contacts-tabs">
+            <button
+              className={`contacts-tab ${activeTab === TABS.FRIENDS ? "active" : ""}`}
+              onClick={() => setActiveTab(TABS.FRIENDS)}
+            >
+              <Users size={16} /> Bạn bè
+            </button>
+            <button
+              className={`contacts-tab ${activeTab === TABS.ADD_FRIEND ? "active" : ""}`}
+              onClick={() => setActiveTab(TABS.ADD_FRIEND)}
+            >
+              <UserPlus size={16} /> Thêm bạn bè
+            </button>
+            <button
+              className={`contacts-tab ${activeTab === TABS.RECEIVED_REQUESTS ? "active" : ""}`}
+              onClick={() => setActiveTab(TABS.RECEIVED_REQUESTS)}
+            >
+              <UserPlus size={16} /> Yêu cầu đã nhận <span className="contacts-badge red">{pendingRequests.length}</span>
+            </button>
+            <button
+              className={`contacts-tab ${activeTab === TABS.SENT_REQUESTS ? "active" : ""}`}
+              onClick={() => setActiveTab(TABS.SENT_REQUESTS)}
+            >
+              <Clock size={16} /> Yêu cầu đã gửi <span className="contacts-badge">{myRequests.length}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Slide panel */}
-        <AnimatePresence>
-          {slideOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-              style={{ overflow: "hidden" }}
-              className="contacts-slide-panel"
-            >
-              <div className="contacts-slide-panel-inner">
-                <div className="contacts-slide-top">
-                  <div>
-                    <h3>
-                      <Sparkles size={14} /> Tìm kiếm theo Username
-                    </h3>
-                  </div>
-                  <div className="contacts-search-input-wrap">
-                    <AtSign size={14} />
-                    <input
-                      placeholder="Nhập tên tài khoản, ví dụ: baotram..."
-                      value={searchKeyword}
-                      onChange={handleInputChange}
-                    />
-                  </div>
+        {/* Tab Content */}
+        <div className="contacts-content">
+          {activeTab === TABS.FRIENDS && (
+            <>
+              <div className="contacts-content-header">
+                <div className="contacts-content-title">
+                  <h2>Danh sách bạn bè ({friends.length}) </h2>
+                  <p>Xem danh sách tất cả những người bạn đã kết nối trên Ivanix.</p>
                 </div>
+                <div className="contacts-filter-pills">
+                  <button className={`filter-pill ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')}>Tất cả</button>
+                  <button className={`filter-pill ${activeFilter === 'recent' ? 'active' : ''}`} onClick={() => setActiveFilter('recent')}>Gần đây</button>
+                  <button className={`filter-pill ${activeFilter === 'favorite' ? 'active' : ''}`} onClick={() => setActiveFilter('favorite')}>Yêu thích</button>
+                </div>
+              </div>
 
-                <div className="contacts-db-section">
-                  <p className="contacts-db-label">
-                    Danh sách tìm kiếm
-                  </p>
-      {searchResults?.length === 0 ? (
-                <div className="recommendation-section">
-                  <h3>
-                    <Sparkles size={14} /> Gợi ý kết nối ({recommendations?.length})
-                  </h3>
-                  <div className="recommendation-grid">
-                    {recommendations?.length === 0 ? (
-                      <div className="recommendation-empty">
-                        Không có gợi ý kết nối nào. Hãy thử kết nối với nhiều người dùng hơn để nhận được gợi ý.
+              {friends?.length === 0 ? (
+                <div className="contacts-empty">
+                  <Users size={38} />
+                  <h3>Chưa có bạn bè nào</h3>
+                  <p>Chuyển sang mục "Thêm bạn bè" để kết nối.</p>
+                </div>
+              ) : (
+                <motion.div layout className="contacts-grid">
+                  <AnimatePresence>
+                    {friends.map((friend) => (
+                      <motion.div
+                        key={friend.id}
+                        layoutId={friend.id}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.94 }}
+                        transition={{ duration: 0.18 }}
+                        className="contacts-card"
+                      >
+                        <div className="contacts-card-top">
+                          <div className="contacts-card-avatar-wrap">
+                            <img
+                              src={friend.avatar_url || user_avatar}
+                              alt={friend.username}
+                              referrerPolicy="no-referrer"
+                            />
+                            <span
+                              className={`contacts-status-dot online`}
+                            />
+                          </div>
+                          <div className="contacts-card-info">
+                            <p className="contacts-card-username">
+                              {friend.username}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="contacts-card-footer">
+                          <button className="contacts-action-primary">
+                            <MessageSquare size={13} />
+                            Nhắn tin
+                          </button>
+                          <button className="contacts-action-more">
+                            <MoreHorizontal size={14} />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </>
+          )}
+
+          {activeTab === TABS.ADD_FRIEND && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="contacts-content-header">
+                <div className="contacts-content-title">
+                  <h2>Thêm bạn bè</h2>
+                  <p>Tìm kiếm và kết nối với những người dùng khác.</p>
+                </div>
+              </div>
+
+              <div className="contacts-search-large">
+                <SearchIcon size={18} className="search-icon" />
+                <input
+                  placeholder="Nhập tên tài khoản để tìm kiếm, ví dụ: baotram..."
+                  value={searchKeyword}
+                  onChange={handleInputChange}
+                />
+                {searchKeyword && (
+                  <button className="clear-search" onClick={() => setSearchKeyword("")}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className="contacts-add-results">
+                {searchKeyword.trim() !== "" ? (
+                  <div className="contacts-db-section">
+                    <p className="contacts-db-label">Kết quả tìm kiếm ({searchResults.length})</p>
+                    {searchResults.length === 0 ? (
+                      <div className="contacts-db-empty">
+                        Không tìm thấy người dùng nào với từ khóa "{searchKeyword}"
                       </div>
                     ) : (
-                      recommendations.map((user) => {
-                        const status = "";
-                        return (
-                          <motion.div
-                            key={user.id}
-                            initial={{ opacity: 0, scale: 0.97 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="recommendation-card"
-                          >
-                            <div className="recommendation-card-left">
-                              <div className="contacts-avatar-wrap">
-                                <img
-                                  src={user.avatar_url || user_avatar}
-                                  alt={user.username}
-                                  referrerPolicy="no-referrer"
-                                />
-                                <span
-                                  className={`contacts-status-dot ${status.isOnline ? "online" : "offline"}`}
-                                />
-                              </div>
-                              <div className="recommendation-info">
-                                <div className="recommendation-name-row">
-                                  <span className="recommendation-username">
-                                    {user.username}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              className="recommendation-connect-btn"
-                              // onClick={() => handleAdd(user)}
-                            >
-                              <UserPlus size={12} />
-                              Thêm bạn bè
-                            </button>
-                          </motion.div>
-                        );
-                      })
+                      <div className="container">
+                        <div className="row row-cols-md-4 text-center">
+                        {searchResults.map((user) => (
+                          <NewContactInfo key={user.id} user={user} onAction={bumpRefresh} />
+                        ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-                  ) : (
-                    <div className="contacts-db-grid">
-                      {searchResults.map((user) => {
-                        const status = "";
-                        return (
-                          <motion.div
-                            key={user.id}
-                            initial={{ opacity: 0, scale: 0.97 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="contacts-db-card"
-                          >
-                            <div className="contacts-db-card-left">
-                              <div className="contacts-avatar-wrap">
-                                <img
-                                  src={user.avatar_url || user_avatar}
-                                  alt={user.username}
-                                  referrerPolicy="no-referrer"
-                                />
-                                <span
-                                  className={`contacts-status-dot ${status.isOnline ? "online" : "offline"}`}
-                                />
-                              </div>
-                              <div className="contacts-db-info">
-                                <div className="contacts-db-name-row">
-                                  <span className="contacts-db-username">
-                                    {user.username}
-                                  </span>
-                                </div>
-                                <p className="contacts-db-email">
-                                  {user.email}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              className="contacts-connect-btn"
-                              // onClick={() => handleAdd(user)}
-                            >
-                              <UserPlus size={12} />
-                              Thêm bạn bè
-                            </button>
-                          </motion.div>
-                        );
-                      })}
+                ) : (
+                  <div className="recommendation-section">
+                    <p className="contacts-db-label">
+                      <Sparkles size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: 'var(--sidebar-primary)' }} />
+                      Gợi ý kết nối ({recommendations?.length})
+                    </p>
+                    <div className="container">
+                      <div className="row row-cols-md-4 text-center">
+                      {recommendations?.length === 0 ? (
+                        <div className="recommendation-empty">
+                          Không có gợi ý kết nối nào lúc này.
+                        </div>
+                      ) : (
+                        recommendations.map((user) => (
+                          <NewContactInfo key={user.id} user={user} onAction={bumpRefresh} />
+                        ))
+                      )}
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-        
-        {/* Filter bar */}
-        <div className="contacts-filter-bar">
-          <div className="contacts-filter-input-wrap">
-            <SearchIcon size={15} />
-            <input
-              placeholder="Lọc danh bạ theo Username hoặc Email..."
-              // value={}
-              // onChange={(e) => setSearchKeyword(e.target.value)}
-            />
-          </div>
-          <div className="contacts-count">
-            <Clock size={12} />
-            Đang kết nối: {friends.length} người
-          </div>
-        </div>
 
-        {/* Grid */}
-        <AnimatePresence mode="popLayout">
-          {friends?.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="contacts-empty"
-            >
-              <Users size={38} />
-              <h3>Không tìm thấy tài khoản nào khớp</h3>
-              <p>Bấm "Thêm bạn mới" để tìm kiếm người dùng trong hệ thống.</p>
-            </motion.div>
-          ) : (
-            <motion.div key="grid" layout className="contacts-grid">
-              {friends.map((friend) => {
-                const status = "";
-                return (
-                  <motion.div
-                    key={friend.id}
-                    layoutId={friend.id}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.94, y: -8 }}
-                    transition={{ duration: 0.18 }}
-                    className="contacts-card"
-                  >
-                    {/* <button
-                      className="contacts-delete-btn"
-                      onClick={() => handleDelete(friend.id, friend.username)}
-                      title="Xóa kết nối"
-                    >
-                      <Trash2 size={13} />
-                    </button> */}
-
-                    <div className="contacts-card-top">
-                      <div className="contacts-card-avatar-wrap">
-                        <img
-                          src={friend.avatar_url}
-                          alt={friend.username}
-                          referrerPolicy="no-referrer"
-                        />
-                        <span
-                          className={`contacts-status-dot ${status.isOnline ? "online" : "offline"}`}
-                        />
-                      </div>
-                      <div className="contacts-card-info">
-                        <p className="contacts-card-username">
-                          {friend.username}
-                        </p>
-                        <p className="contacts-card-email">{friend.email}</p>
-                        <div className="contacts-card-status">
-                          <span
-                            className={`contacts-card-status-dot ${status.isOnline ? "online" : "offline"}`}
-                          />
-                          <span className="contacts-card-status-text">
-                            {status.text}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="contacts-card-footer">
-                      <button className="contacts-action-primary">
-                        <MessageSquare size={13} />
-                        Nhắn tin
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+          {activeTab === TABS.RECEIVED_REQUESTS && (
+            pendingRequests.length === 0 ? (
+              <div className="contacts-empty">
+                <Clock size={38} />
+                <h3>Chưa có yêu cầu nào được gửi đến</h3>
+              </div>
+            ) : (
+              <div className="container">
+                <div className="row row-cols-md-4 text-center">
+                  {pendingRequests.map((request) => (
+                    <NewContactInfo key={request.id} user={{...request, rel_status: "request_received"}} onAction={bumpRefresh} />
+                  ))}
+                </div>
+              </div>
+            )
           )}
-        </AnimatePresence>
+
+          {activeTab === TABS.SENT_REQUESTS && (
+            myRequests.length === 0 ? (
+              <div className="contacts-empty">
+                <Clock size={38} />
+                <h3>Chưa có yêu cầu nào được gửi đi</h3>
+              </div>
+            ) : (
+              <div className="container">
+                <div className="row row-cols-md-4 text-center">
+                  {myRequests.map((request) => (
+                    <NewContactInfo key={request.id} user={{...request, rel_status: "request_sent"}} onAction={bumpRefresh} />
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+        </div>
       </div>
     </div>
   );

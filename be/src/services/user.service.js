@@ -18,20 +18,35 @@ const profile = async (email) => {
 const search = async (userId, keyword) => {
   const safeKeyword = utils.escapeLikePattern(keyword);
   const query = `SELECT
-        id,
-        username,
-        avatar_url
-        FROM users
-        WHERE id <> $1
-        AND username ILIKE '%' || $2 || '%' ESCAPE '\\'
-        ORDER BY
-        CASE
-            WHEN lower(username) = lower($2) THEN 1
-            WHEN lower(username) LIKE lower($2) || '%' THEN 2
-            ELSE 3
-        END,
-        username
-        LIMIT 15;`;
+  u.id,
+  u.username,
+  u.avatar_url,
+  CASE
+    WHEN fr.status = 'pending' AND fr.sender_id = $1 THEN 'request_sent'
+    WHEN fr.status = 'pending' AND fr.receiver_id = $1 THEN 'request_received'
+    ELSE 'none'
+  END AS rel_status
+FROM users u
+LEFT JOIN friend_requests fr
+  ON fr.status = 'pending'
+  AND (
+    (fr.sender_id = $1 AND fr.receiver_id = u.id) OR
+    (fr.sender_id = u.id AND fr.receiver_id = $1)
+  )
+LEFT JOIN friendships f
+  ON f.user_id1 = LEAST($1, u.id)
+  AND f.user_id2 = GREATEST($1, u.id)
+WHERE u.id <> $1
+  AND u.username ILIKE '%' || $2 || '%' ESCAPE '\'
+  AND f.user_id1 IS NULL   -- loại người đã là bạn bè
+ORDER BY
+  CASE
+    WHEN lower(u.username) = lower($2) THEN 1
+    WHEN lower(u.username) LIKE lower($2) || '%' THEN 2
+    ELSE 3
+  END,
+  u.username
+LIMIT 15;`;
   try {
     const { rows } = await db.query(query, [userId, safeKeyword]);
     // console.log(rows);

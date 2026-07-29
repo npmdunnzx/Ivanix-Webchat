@@ -184,19 +184,36 @@ const getRecommendations = async (userId) => {
     return rows;
   }
 
+  const excludeQuery = `
+    SELECT user_id2 AS id FROM friendships WHERE user_id1 = $1
+    UNION
+    SELECT user_id1 AS id FROM friendships WHERE user_id2 = $1
+    UNION
+    SELECT receiver_id AS id FROM friend_requests WHERE sender_id = $1 AND status = 'pending'
+    UNION
+    SELECT sender_id AS id FROM friend_requests WHERE receiver_id = $1 AND status = 'pending'
+  `;
+  const { rows: excludeRows } = await db.query(excludeQuery, [userId]);
+  const excludeIds = new Set(excludeRows.map((r) => r.id));
+  const filteredCandidateIds = candidateIds.filter((id) => !excludeIds.has(id));
+
+  if (filteredCandidateIds.length === 0) {
+    return [];
+  }
+
   // Batch check presence bằng 1 pipeline thay vì N lần hget riêng lẻ.
   const presencePipeline = redis.pipeline();
-  candidateIds.forEach((id) => presencePipeline.hget(`user:presence:${id}`, "status"));
-  const presenceResults = await presencePipeline.exec(); // [[err, value], ...]
+  filteredCandidateIds.forEach((id) => presencePipeline.hget(`user:presence:${id}`, "status"));
+  const presenceResults = await presencePipeline.exec();
 
   // Batch lấy profile bằng 1 câu SQL duy nhất.
   const profileRes = await db.query(
     `SELECT id, username, avatar_url FROM users WHERE id = ANY($1::uuid[])`,
-    [candidateIds],
+    [filteredCandidateIds],
   );
   const profileMap = new Map(profileRes.rows.map((u) => [u.id, u]));
 
-  const ranked = candidateIds.map((id, idx) => {
+  const ranked = filteredCandidateIds.map((id, idx) => {
     const feature = JSON.parse(raw[id]);
     const isOnline = presenceResults[idx]?.[1] === "online";
     const profile = profileMap.get(id) || {};

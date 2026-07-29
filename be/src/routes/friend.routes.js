@@ -10,5 +10,7 @@ router.post("/send-request", friendController.sendRequest);
 router.post("/response-request", friendController.responseRequest);
 router.get("/pending-requests", friendController.getPendingRequest);
 router.get("/", friendController.getFriends);
+router.post("/cancel-request", friendController.cancelRequest);
+router.get("/my-requests", friendController.getMyRequests);
 
 export default router;

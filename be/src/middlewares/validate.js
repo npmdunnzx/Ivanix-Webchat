@@ -66,13 +66,14 @@ const newGroupChatRule = () => {
       .isLength({ min: 3, max: 50 })
       .withMessage("Group name must be between 3 and 50 characters"),
     body("membersId")
-      .isArray({ min: 2 })
-      .withMessage("Group must have at least 2 other members"),
+      .isArray({ min: 2, max: 49 })
+      .withMessage("Group must have 2 to 49 members (50 including you)"),
     body("membersId.*")
       .isUUID()
       .withMessage("Each member id must be a valid UUID"),
   ];
 };
+
 
 const addMembersRule = () => {
   return [

@@ -7,12 +7,10 @@ const getAllConversations = async (req, res) => {
   const userId = req.userId;
   try {
     const conversations = await convService.getAllConversations(userId);
-    res
-      .status(200)
-      .json({
-        message: "Conversations fetched successfully",
-        result: conversations,
-      });
+    res.status(200).json({
+      message: "Conversations fetched successfully",
+      result: conversations,
+    });
   } catch (err) {
     console.error("Could not get conversations:", err.message);
     res
@@ -127,6 +125,97 @@ const getGroupMembers = async (req, res) => {
   }
 };
 
+const leaveConversation = async (req, res) => {
+  const conversation_id =
+    req.body.conversation_id || req.params.conversation_id;
+  const userId = req.userId;
+  try {
+    await convService.leaveConversation(conversation_id, userId);
+    res.status(200).json({ message: "Left conversation successfully" });
+  } catch (error) {
+    if (error.message.includes("only admin")) {
+      return res.status(403).json({ message: error.message });
+    }
+    console.error("Could not leave conversation: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not leave conversation", error: error.message });
+  }
+};
+
+
+const delConversationHistory = async (req, res) => {
+  const conversation_id =
+    req.params.conversation_id || req.body.conversation_id;
+  const userId =  req.userId;
+  try {
+    await convService.delConversationHistory(conversation_id, userId);
+    res.status(200).json({ message: "Deleted conversation successfully" });
+  } catch (error) {
+    console.error("Could not delete conversation: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not delete conversation", error: error.message });
+  }
+};
+
+const removeGroupMember = async (req, res) => {
+  const { conversation_id, target_user_id } = req.body;
+  try {
+    await convService.removeGroupMember(conversation_id, target_user_id);
+    res.status(200).json({ message: "Member removed from group successfully" });
+  } catch (error) {
+    console.error("Could not remove group member: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not remove group member", error: error.message });
+  }
+};
+
+const renameGroup = async (req, res) => {
+  const { conversation_id, group_name } = req.body;
+  try {
+    const result = await convService.renameGroup(conversation_id, group_name);
+    res.status(200).json({ message: "Group renamed successfully", result });
+  } catch (error) {
+    console.error("Could not rename group: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not rename group", error: error.message });
+  }
+};
+
+const transferAdmin = async (req, res) => {
+  const { conversation_id, new_admin_id } = req.body;
+  const currentAdminId = req.userId;
+  try {
+    await convService.transferAdmin(conversation_id, new_admin_id, currentAdminId);
+    res.status(200).json({ message: "Admin transferred successfully" });
+  } catch (error) {
+    if (error.message.includes("not an admin")) {
+      return res.status(403).json({ message: error.message });
+    }
+    console.error("Could not transfer admin: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not transfer admin", error: error.message });
+  }
+};
+
+const deleteGroupConversation = async (req, res) => {
+  const conversation_id = req.params.conversation_id;
+  try {
+    await convService.deleteGroupConversation(conversation_id);
+    res.status(200).json({ message: "Group conversation deleted successfully" });
+  } catch (error) {
+    console.error("Could not delete group conversation: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not delete group conversation", error: error.message });
+  }
+};
+
+
 export default {
   getAllConversations,
   newGroupChat,
@@ -135,4 +224,11 @@ export default {
   // newPrivateChat,
   checkExistChat,
   searchConversation,
+  leaveConversation,
+  delConversationHistory,
+  removeGroupMember,
+  renameGroup,
+  transferAdmin,
+  deleteGroupConversation,
 };
+

@@ -6,7 +6,7 @@ const getAllConversations = async (userId) => {
   const query = `
         SELECT
             c.id, c.type, c.name, c.last_message_at, c.last_message_sender_id,
-            c.last_message_id, cm.unread_count,
+            c.last_message_id, c.created_at, cm.unread_count,
 
             m.content AS last_message_content,
             m.message_type AS last_message_type,
@@ -25,7 +25,7 @@ const getAllConversations = async (userId) => {
         LEFT JOIN users partner ON partner.id = cm2.user_id
 
         WHERE cm.user_id = $1
-        ORDER BY c.last_message_at DESC NULLS LAST
+        ORDER BY COALESCE(c.last_message_at, c.created_at) DESC
         LIMIT 50
     `;
   try {
@@ -64,7 +64,13 @@ const newGroupChat = async (groupName, adminId, membersId) => {
     await client.query(query3, [conversationId, adminId]);
 
     await client.query("COMMIT");
-    return { conversationId, created: true };
+    return {
+      id: conversationId,
+      conversationId,
+      name: groupName,
+      type: "group",
+      created: true,
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw new Error(error.message);
@@ -191,6 +197,160 @@ const getGroupMembers = async (conversationId) => {
   }
 };
 
+const leaveConversation = async (conversationId, userId) => {
+  const client = await db.getClient();
+  try {
+    await client.query("BEGIN");
+
+    // Kiểm tra role của user
+    const roleCheck = await client.query(
+      `SELECT role FROM conversation_members
+       WHERE conversation_id = $1 AND user_id = $2`,
+      [conversationId, userId]
+    );
+    if (roleCheck.rows.length === 0) {
+      throw new Error("You are not a member of this conversation");
+    }
+
+    // Nếu là admin duy nhất → không cho rời
+    if (roleCheck.rows[0].role === "admin") {
+      const adminCount = await client.query(
+        `SELECT COUNT(*) FROM conversation_members
+         WHERE conversation_id = $1 AND role = 'admin'`,
+        [conversationId]
+      );
+      if (parseInt(adminCount.rows[0].count) === 1) {
+        throw new Error("Cannot leave: you are the only admin. Transfer admin role first.");
+      }
+    }
+
+    await client.query(
+      `DELETE FROM conversation_members WHERE conversation_id = $1 AND user_id = $2`,
+      [conversationId, userId]
+    );
+    await client.query("COMMIT");
+    return { success: true };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Could not leave conversation: " + error.message);
+    throw new Error(error.message);
+  } finally {
+    client.release();
+  }
+};
+
+
+const delConversationHistory = async (conversationId, userId) => {
+  const query = `
+    UPDATE conversation_members 
+    SET cleared_history_at = NOW() 
+    WHERE conversation_id = $1 AND user_id = $2
+  `;
+  try {
+    await db.query(query, [conversationId, userId]);
+    return { success: true };
+  } catch (error) {
+    console.error("Could not delete conversation: " + error.message);
+    throw new Error("Could not delete conversation: " + error.message);
+  }
+};
+
+const removeGroupMember = async (conversationId, targetUserId) => {
+  const query = `
+    DELETE FROM conversation_members
+    WHERE conversation_id = $1 AND user_id = $2
+  `;
+  try {
+    await db.query(query, [conversationId, targetUserId]);
+    return { success: true };
+  } catch (error) {
+    console.error("Could not remove group member: " + error.message);
+    throw new Error("Could not remove group member: " + error.message);
+  }
+};
+
+const renameGroup = async (conversationId, groupName) => {
+  const query = `
+    UPDATE conversations
+    SET name = $1
+    WHERE id = $2 AND type = 'group'
+    RETURNING id, name
+  `;
+  try {
+    const { rows } = await db.query(query, [groupName, conversationId]);
+    return rows[0];
+  } catch (error) {
+    console.error("Could not rename group: " + error.message);
+    throw new Error("Could not rename group: " + error.message);
+  }
+};
+
+const transferAdmin = async (conversationId, newAdminId, currentAdminId) => {
+  const client = await db.getClient();
+  try {
+    await client.query("BEGIN");
+
+    // Verify currentAdmin thực sự là admin
+    const verify = await client.query(
+      `SELECT role FROM conversation_members
+       WHERE conversation_id = $1 AND user_id = $2`,
+      [conversationId, currentAdminId]
+    );
+    if (!verify.rows[0] || verify.rows[0].role !== "admin") {
+      throw new Error("You are not an admin of this group");
+    }
+
+    // Verify newAdmin là member của group
+    const targetCheck = await client.query(
+      `SELECT role FROM conversation_members
+       WHERE conversation_id = $1 AND user_id = $2`,
+      [conversationId, newAdminId]
+    );
+    if (!targetCheck.rows[0]) {
+      throw new Error("Target user is not a member of this group");
+    }
+
+    // Downgrade current admin → member, upgrade new user → admin
+    await client.query(
+      `UPDATE conversation_members SET role = 'member'
+       WHERE conversation_id = $1 AND user_id = $2`,
+      [conversationId, currentAdminId]
+    );
+    await client.query(
+      `UPDATE conversation_members SET role = 'admin'
+       WHERE conversation_id = $1 AND user_id = $2`,
+      [conversationId, newAdminId]
+    );
+
+    await client.query("COMMIT");
+    return { success: true };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Could not transfer admin: " + error.message);
+    throw new Error(error.message);
+  } finally {
+    client.release();
+  }
+};
+
+const deleteGroupConversation = async (conversationId) => {
+  const query = `
+    DELETE FROM conversations
+    WHERE id = $1 AND type = 'group'
+    RETURNING id
+  `;
+  try {
+    const { rows } = await db.query(query, [conversationId]);
+    if (rows.length === 0) {
+      throw new Error("Group conversation not found or already deleted");
+    }
+    return { success: true, id: rows[0].id };
+  } catch (error) {
+    console.error("Could not delete group conversation: " + error.message);
+    throw new Error("Could not delete group conversation: " + error.message);
+  }
+};
+
 export default {
   getAllConversations,
   checkExistChat,
@@ -199,4 +359,10 @@ export default {
   addNewMembers,
   searchConversation,
   getGroupMembers,
+  leaveConversation,
+  delConversationHistory,
+  removeGroupMember,
+  renameGroup,
+  transferAdmin,
+  deleteGroupConversation,
 };

@@ -18,14 +18,14 @@ const sendRequest = async (receiverId) => {
     return response;
 };
 
-const responseRequest = async (requestId, status) => {
+const responseRequest = async (senderId, status) => {
     const response = {
         success: true,
         listErr: [],
         data: null,
     }
     try {
-        const data = await friendApis.responseRequest(requestId, status);
+        const data = await friendApis.responseRequest(senderId, status);
         response.data = data;
     }
     catch (error) {
@@ -55,6 +55,42 @@ const getPendingRequests = async () => {
     return response;
 }
 
+const cancelRequest = async (receiverId) => {
+    const response = {
+        success: true,
+        listErr: [],
+        data: null,
+    }
+    try {
+        const data = await friendApis.cancelRequest(receiverId);
+        response.data = data;
+    } catch (error) {
+        response.success = false;
+        if (error.response && error.response.status === 500) {
+            response.listErr.push({ path: "friend", msg: "Could not cancel friend request" });
+        }
+    }
+    return response;
+}
+
+const getMyRequests = async () => {
+    const response = {
+        success: true,
+        listErr: [],
+        data: null,
+    }
+    try {
+        const data = await friendApis.getMyRequests();
+        response.data = data;
+    } catch (error) {
+        response.success = false;
+        if (error.response && error.response.status === 500) {
+            response.listErr.push({ path: "friend", msg: "Could not get my requests" });
+        }
+    }
+    return response;
+}
+
 const getFriends = async () => {
     const response = {
         success: true,
@@ -77,6 +113,8 @@ const getFriends = async () => {
 export default {
     sendRequest,
     responseRequest,
+    cancelRequest,
     getPendingRequests,
+    getMyRequests,
     getFriends
 }

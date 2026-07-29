@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState, useContext } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext.jsx";
-import { Plus, Users, Search, Info } from "lucide-react";
+import { Users, Search, Info, MessageSquarePlus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { SocketContext } from "../context/SocketContext.jsx";
 import "../assets/styles/chat.css";
 import convService from "../services/conversation.service.js";
 import messService from "../services/message.service.js";
 import ChatInfo from "../components/ChatInfo.jsx";
+import CreateGroupModal from "../components/CreateGroupModal.jsx";
 // import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
@@ -33,6 +34,8 @@ function Chat() {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isChatInfoOpen, setIsChatInfoOpen] = useState(true);
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [messagesRefreshKey, setMessagesRefreshKey] = useState(0);
 
   // Fetch conversations
   useEffect(() => {
@@ -56,6 +59,18 @@ function Chat() {
     fetchConversations();
   }, []);
 
+  const handleGroupCreated = (newConv) => {
+    if (!newConv) return;
+    if (socket && newConv.id) {
+      socket.emit("conversation:join", newConv.id);
+    }
+    setConversations((prev) => [
+      newConv,
+      ...prev.filter((c) => c.id !== newConv.id),
+    ]);
+    setSelectedConversation(newConv);
+  };
+
   // Join and leave conversation rooms
   useEffect(() => {
     if (!conversations.length) return;
@@ -77,12 +92,19 @@ function Chat() {
 
     const fetchMessages = async () => {
       const msgs = await messService.getMessages(selectedConversation.id);
-      // console.log("msgs:", msgs);
       setMessages(msgs.data.reverse() || []);
     };
 
     fetchMessages();
-  }, [selectedConversation?.id]);
+  }, [selectedConversation?.id, messagesRefreshKey]);
+
+  // Handle clear history
+  const handleHistoryCleared = (convId) => {
+  if (selectedConversation?.id === convId) {
+    setMessages([]);
+    setMessagesRefreshKey(k => k + 1);
+  }
+};
 
   // Listen for new messages
   useEffect(() => {
@@ -97,16 +119,16 @@ function Chat() {
         const updatedConvs = prevConvs.map((conv) =>
           conv.id === msg.conversation_id
             ? {
-                ...conv,
-                last_message_content: msg.content,
-                last_message_at: msg.created_at,
-                last_message_sender_id: msg.sender_id,
-                unread_count:
-                  msg.conversation_id === selectedConversation?.id ||
+              ...conv,
+              last_message_content: msg.content,
+              last_message_at: msg.created_at,
+              last_message_sender_id: msg.sender_id,
+              unread_count:
+                msg.conversation_id === selectedConversation?.id ||
                   msg.sender_id === userInfo?.id
-                    ? 0
-                    : (conv.unread_count || 0) + 1,
-              }
+                  ? 0
+                  : (conv.unread_count || 0) + 1,
+            }
             : conv,
         );
 
@@ -168,6 +190,25 @@ function Chat() {
     setSearchKeyword(e.target.value);
   };
 
+  const handleGroupRenamed = (convId, newName) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, name: newName } : c))
+    );
+    setSelectedConversation((prev) =>
+      prev && prev.id === convId ? { ...prev, name: newName } : prev
+    );
+  };
+
+  const handleConversationRemoved = (convId) => {
+    setConversations((prev) => {
+      const updated = prev.filter((c) => c.id !== convId);
+      if (selectedConversation?.id === convId) {
+        setSelectedConversation(updated[0] || null);
+      }
+      return updated;
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim() === "") return;
@@ -192,8 +233,15 @@ function Chat() {
         <div className="messages-header">
           <div className="messages-title-row">
             <h2>Tin nhắn</h2>
+            <button
+              className="messages-add-button"
+              onClick={() => setIsCreateGroupOpen(true)}
+              title="Tạo nhóm mới"
+            >
+              <Users size={20} />
+            </button>
             <button className="messages-add-button">
-              <Plus size={20} />
+              <MessageSquarePlus size={20} />
             </button>
           </div>
           <div className="messages-search">
@@ -225,7 +273,7 @@ function Chat() {
                     <p className={`${conv.unread_count > 0 ? "unread" : ""}`}>
                       {conv.name || conv.partner_username}
                     </p>
-                    <span>{dayjs(conv.last_message_at).fromNow()}</span>
+                    <span>{dayjs(conv.last_message_at ?? conv.created_at).fromNow()}</span>
                   </div>
                   <p
                     className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}
@@ -268,7 +316,7 @@ function Chat() {
             {messages.map((msg, index) => (
               <li
                 key={msg.server_offset || msg.client_offset || index}
-                className={msg.sender_id === userInfo.id ? "mine" : "other"}
+                className={msg.sender_id === userInfo?.id ? "mine" : "other"}
               >
                 {msg.content}
               </li>
@@ -286,7 +334,18 @@ function Chat() {
           </form>
         </div>
       </div>
-      <ChatInfo conversation={selectedConversation} isOpen={isChatInfoOpen} />
+      <ChatInfo 
+        conversation={selectedConversation} 
+        isOpen={isChatInfoOpen} 
+        onConversationRemoved={handleConversationRemoved}
+        onGroupRenamed={handleGroupRenamed}
+        onHistoryCleared={handleHistoryCleared}
+      />
+      <CreateGroupModal
+        isOpen={isCreateGroupOpen}
+        onClose={() => setIsCreateGroupOpen(false)}
+        onGroupCreated={handleGroupCreated}
+      />
     </div>
   );
 }
