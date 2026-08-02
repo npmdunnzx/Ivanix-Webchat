@@ -1,6 +1,7 @@
 import messService from "../services/message.service.js";
 import { raw } from "express";
 import config from "../config/env.config.js";
+import { io } from "../config/server.config.js";
 
 const getMessages = async (req, res) => {
   const { conversationId } = req.query;
@@ -22,8 +23,6 @@ const newMessage = async (req, res) => {
     conversationId,
     content,
     messageType,
-    fileUrl,
-    fileName,
     clientOffset,
   } = req.body;
   try {
@@ -33,8 +32,6 @@ const newMessage = async (req, res) => {
       senderId,
       content,
       messageType,
-      fileUrl,
-      fileName,
     );
     res
       .status(201)
@@ -47,7 +44,38 @@ const newMessage = async (req, res) => {
   }
 };
 
+const uploadFilesMessage = async (req, res) => {
+  const senderId = req.userId;
+  const { conversationId, clientOffset } = req.body;
+  const files = req.files;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({ message: "No files provided" });
+  }
+
+  try {
+    const message = await messService.uploadFilesMessage(
+      clientOffset ?? null,
+      conversationId,
+      senderId,
+      files
+    );
+    console.log("message", message);
+    io.to(`conversation:${conversationId}`).emit("message:new", message);
+
+    res
+      .status(201)
+      .json({ message: "Files uploaded successfully", data: message });
+  } catch (error) {
+    console.error("Could not upload files" + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not upload files", error: error.message });
+  }
+};
+
 export default {
   getMessages,
   newMessage,
+  uploadFilesMessage,
 };

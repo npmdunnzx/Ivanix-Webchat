@@ -375,42 +375,74 @@ p.unread {
 }
 
 #messages > li {
-  max-width: min(70%, 560px);
+  max-width: min(75%, 560px);
   min-width: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+#messages > li.other {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+#messages > li.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* Bong bóng văn bản riêng biệt */
+.msg-text-bubble {
   padding: 10px 14px;
   border-radius: 18px;
   line-height: 1.45;
-  color: var(--sidebar-text);
   font-size: 14px;
   word-break: break-word;
   overflow-wrap: anywhere;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
-#messages > li.other {
-  align-self: flex-start;
-  background: #fff;
+#messages > li.other .msg-text-bubble {
+  background: #ffffff;
+  color: var(--sidebar-text);
   border-bottom-left-radius: 5px;
 }
 
-#messages > li.mine {
-  align-self: flex-end;
+#messages > li.mine .msg-text-bubble {
   background: var(--sidebar-primary);
-  color: #fff;
+  color: #ffffff;
   border-bottom-right-radius: 5px;
+}
+
+.msg-text-bubble p {
+  margin: 0;
 }
 
 #form {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   border-top: 1px solid var(--sidebar-border);
   background: rgba(248, 250, 252, 0.94);
   backdrop-filter: blur(12px);
   box-sizing: border-box;
   flex-shrink: 0;
 }
+
+/* Wrapper nội tại để row icon + input + button vẫn flex-row */
+#form > .form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+}
+
+
 
 #input {
   flex: 1;
@@ -433,7 +465,7 @@ p.unread {
   box-shadow: 0 0 0 3px rgba(18, 58, 74, 0.12);
 }
 
-#form > button {
+#form .form-row > button {
   height: 44px;
   border: none;
   border-radius: 999px;
@@ -447,7 +479,7 @@ p.unread {
     transform 160ms ease;
 }
 
-#form > button:hover {
+#form .form-row > button:hover {
   background: #0d2d3a;
   transform: translateY(-1px);
 }

@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { Users, Search, Info, MessageSquarePlus } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { SocketContext } from "../context/SocketContext.jsx";
 import "../assets/styles/chat.css";
 import convService from "../services/conversation.service.js";
 import messService from "../services/message.service.js";
 import ChatInfo from "../components/ChatInfo.jsx";
 import CreateGroupModal from "../components/CreateGroupModal.jsx";
-// import { useNavigate } from "react-router-dom";
+import FileAttachment from "../components/FileAttachment.jsx";
+import MessageAttachments from "../components/MessageAttachments.jsx";
+import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
 import "dayjs/locale/vi.js";
@@ -23,7 +25,8 @@ function findZeroUnreadConversation(conversations) {
 
 function Chat() {
   const { userInfo } = useContext(AuthContext);
-  // const navigate = useNavigate();
+  const { conversationId } = useParams();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const latestSearchId = useRef(0);
@@ -36,6 +39,7 @@ function Chat() {
   const [isChatInfoOpen, setIsChatInfoOpen] = useState(true);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [messagesRefreshKey, setMessagesRefreshKey] = useState(0);
+  const [attachedFiles, setAttachedFiles] = useState([]);   // File[]
 
   // Fetch conversations
   useEffect(() => {
@@ -58,6 +62,24 @@ function Chat() {
 
     fetchConversations();
   }, []);
+
+  useEffect(() => {
+    if (conversations.length === 0) return;
+    
+    if (conversationId) {
+       const targetConv = conversations.find((c) => c.id === conversationId);
+    if (targetConv) {
+      setSelectedConversation(targetConv);
+    } else {
+      navigate("/chat", { replace: true });
+    }
+  } else {
+    const defaultConv = findZeroUnreadConversation(conversations) || conversations[0];
+    if (defaultConv) {
+      setSelectedConversation(defaultConv);
+    }
+  }
+}, [conversationId, conversations, navigate]);
 
   const handleGroupCreated = (newConv) => {
     if (!newConv) return;
@@ -109,38 +131,41 @@ function Chat() {
   // Listen for new messages
   useEffect(() => {
     const handleNewMessage = (msg) => {
-      setMessages((prev) =>
-        msg.conversation_id === selectedConversation?.id
-          ? [...prev, msg]
-          : prev,
-      );
-
+      if (msg.conversation_id !== selectedConversation?.id) return;
+      setMessages((prev) => {
+        const existingIndex = prev.findIndex(
+          (m) => m.client_offset && m.client_offset === msg.client_offset,
+        );
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...msg, isUploading: false };
+          return updated;
+        }
+        return [...prev, msg];
+      });
       setConversations((prevConvs) => {
         const updatedConvs = prevConvs.map((conv) =>
           conv.id === msg.conversation_id
             ? {
-              ...conv,
-              last_message_content: msg.content,
-              last_message_at: msg.created_at,
-              last_message_sender_id: msg.sender_id,
-              unread_count:
-                msg.conversation_id === selectedConversation?.id ||
+                ...conv,
+                last_message_content: msg.content,
+                last_message_at: msg.created_at,
+                last_message_sender_id: msg.sender_id,
+                unread_count:
+                  msg.conversation_id === selectedConversation?.id ||
                   msg.sender_id === userInfo?.id
-                  ? 0
-                  : (conv.unread_count || 0) + 1,
-            }
+                    ? 0
+                    : (conv.unread_count || 0) + 1,
+              }
             : conv,
         );
-
         return updatedConvs.sort(
           (a, b) =>
             new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0),
         );
       });
     };
-
     socket.on("message:new", handleNewMessage);
-
     return () => {
       socket.off("message:new", handleNewMessage);
     };
@@ -160,6 +185,7 @@ function Chat() {
         conv.id === c.id ? { ...conv, unread_count: 0 } : c,
       ),
     );
+    navigate(`/chat/${conv.type}/${conv.id}`);
   };
 
   useEffect(() => {
@@ -209,16 +235,73 @@ function Chat() {
     });
   };
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (input.trim() === "") return;
-    socket.emit("message:send", {
-      conversationId: selectedConversation.id,
-      content: input,
-      clientOffset: crypto.randomUUID(),
-      senderId: userInfo.id,
-    });
+    const filesToSend = [...attachedFiles];
+    const textContent = input.trim();
+    if (filesToSend.length === 0 && textContent === "") return;
     setInput("");
+    setAttachedFiles([]);
+    // --- Tin nhắn FILE (nếu có) ---
+    if (filesToSend.length > 0) {
+      const fileClientOffset = crypto.randomUUID();
+      const tempAttachments = filesToSend.map((file, idx) => ({
+        id: `temp-${fileClientOffset}-${idx}`,
+        file_url: URL.createObjectURL(file),
+        file_name: file.name,
+        mime_type: file.type,
+        file_size: file.size,
+        display_order: idx,
+      }));
+      const optimisticFileMsg = {
+        client_offset: fileClientOffset,
+        sender_id: userInfo.id,
+        conversation_id: selectedConversation.id,
+        content: null,
+        attachments: tempAttachments,
+        isUploading: true,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimisticFileMsg]);
+      try {
+        await messService.uploadFilesMessage(
+          fileClientOffset,
+          selectedConversation.id,
+          filesToSend,
+        );
+        tempAttachments.forEach((att) => URL.revokeObjectURL(att.file_url));
+      } catch (error) {
+        console.error("Gửi file thất bại: " + error.message);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.client_offset === fileClientOffset
+              ? { ...m, isUploading: false, isError: true }
+              : m,
+          ),
+        );
+      }
+    }
+    // --- Tin nhắn TEXT (nếu có) ---
+    if (textContent !== "") {
+      const textClientOffset = crypto.randomUUID();
+      const optimisticTextMsg = {
+        client_offset: textClientOffset,
+        sender_id: userInfo.id,
+        conversation_id: selectedConversation.id,
+        content: textContent,
+        attachments: [],
+        isUploading: false,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimisticTextMsg]);
+      socket.emit("message:send", {
+        conversationId: selectedConversation.id,
+        content: textContent,
+        clientOffset: textClientOffset,
+        senderId: userInfo.id,
+      });
+    }
   };
 
   return (
@@ -313,24 +396,58 @@ function Chat() {
         </div>
         <div className="chat-content">
           <ul id="messages" ref={messagesRef}>
-            {messages.map((msg, index) => (
-              <li
-                key={msg.server_offset || msg.client_offset || index}
-                className={msg.sender_id === userInfo?.id ? "mine" : "other"}
-              >
-                {msg.content}
-              </li>
-            ))}
+            {messages.map((msg, index) => {
+              const isMine = msg.sender_id === userInfo?.id;
+              const hasText = Boolean(msg.content && msg.content.trim());
+              const hasAttachments = msg.attachments && msg.attachments.length > 0;
+
+              return (
+                <li
+                  key={msg.server_offset || msg.client_offset || index}
+                  className={`msg-row ${isMine ? "mine" : "other"}`}
+                >
+                  {/* Bong bóng văn bản (chỉ render khi có chữ) */}
+                  {hasText && (
+                    <div className="msg-text-bubble">
+                      <p>{msg.content}</p>
+                    </div>
+                  )}
+
+                  {/* Hiển thị đính kèm — Độc lập, không bị bao bởi màu bubble mine/other */}
+                  {hasAttachments && (
+                    <MessageAttachments attachments={msg.attachments} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
+
           <form id="form" onSubmit={handleSubmit}>
-            <input
-              id="input"
-              autoComplete="off"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <button type="submit">Send</button>
+            {/* Preview grid — hiện phía trên khi có file */}
+            {attachedFiles.length > 0 && (
+              <FileAttachment
+                files={attachedFiles}
+                onChange={setAttachedFiles}
+                previewOnly
+              />
+            )}
+            <div className="form-row">
+              {/* Trigger button nằm trong hàng cùng input */}
+              <FileAttachment
+                files={attachedFiles}
+                onChange={setAttachedFiles}
+                triggerOnly
+              />
+              <input
+                id="input"
+                autoComplete="off"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Nhắn tin..."
+              />
+              <button type="submit">Send</button>
+            </div>
           </form>
         </div>
       </div>

@@ -93,18 +93,7 @@ CREATE TABLE messages (
 
     message_type VARCHAR(20)
         DEFAULT 'text'
-        CHECK (
-            message_type IN (
-                'text',
-                'image',
-                'file',
-                'video',
-                'audio'
-            )
-        ),
-
-    file_url TEXT,
-    file_name VARCHAR(255),
+        CHECK (message_type IN ('text', 'file')),
 
     is_deleted BOOLEAN DEFAULT FALSE,
     deleted_at TIMESTAMP WITH TIME ZONE,
@@ -115,6 +104,12 @@ CREATE TABLE messages (
         (is_deleted = FALSE AND deleted_at IS NULL)
         OR
         (is_deleted = TRUE AND deleted_at IS NOT NULL)
+    ),
+    CONSTRAINT chk_message_content
+    CHECK (
+        (message_type = 'text' AND content IS NOT NULL)
+        OR
+        (message_type = 'file')
     )
 );
 
@@ -123,6 +118,26 @@ ALTER TABLE conversations
 ADD COLUMN last_message_id UUID
 REFERENCES messages(id)
 ON DELETE SET NULL;
+
+-- ============================================================================
+-- MESSAGE ATTACHMENTS
+-- ============================================================================
+CREATE TABLE message_attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    message_id UUID NOT NULL
+        REFERENCES messages(id) ON DELETE CASCADE,
+
+    file_url TEXT NOT NULL,
+    file_public_id TEXT,
+    file_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+
+    display_order SMALLINT NOT NULL,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
 -- ============================================================================
 -- MESSAGE SEEN
@@ -256,3 +271,10 @@ ON friend_requests(receiver_id, status);
 CREATE UNIQUE INDEX idx_unique_pending_pair
 ON friend_requests (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id))
 WHERE status = 'pending';
+
+CREATE INDEX idx_message_attachments_message_id
+ON message_attachments(message_id);
+
+ALTER TABLE message_attachments
+ADD CONSTRAINT uq_message_attachment_order
+UNIQUE(message_id, display_order);

@@ -138,6 +138,10 @@
   box-shadow: 0 8px 18px rgba(18, 58, 74, 0.2);
 }
 
+.nav-item.active p:first-child {
+  color: #fff;
+}
+
 .nav-item-collapsed {
   width: 48px;
   height: 48px;
@@ -171,11 +175,6 @@
   color: inherit;
   overflow: hidden;
   transition: background-color 160ms ease;
-}
-
-.profile-button:hover {
-  background: var(--sidebar-bg-high);
-  cursor: pointer;
 }
 
 .profile-button-collapsed {

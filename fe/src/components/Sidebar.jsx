@@ -79,8 +79,9 @@ function Sidebar() {
 
         <div className="profile-section">
           <button
-            className={cx("profile-button", isChat && "profile-button-collapsed")}
+            className={cx("profile-button", pathname.startsWith("/settings") && "nav-item active")}
             title="View Profile"
+            onClick={() => navigate("/settings")}
           >
             <div className="profile-icon">
               <img src={user_avatar} alt="Profile" />

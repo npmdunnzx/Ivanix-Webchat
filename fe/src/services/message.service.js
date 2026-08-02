@@ -42,7 +42,28 @@ const newMessage = async (clientOffset , conversationId, senderId, content) => {
     }
 }
 
+const uploadFilesMessage = async (clientOffset, conversationId, files) => {
+    const response = {
+        success: true,
+        listErr: [],
+        data: null
+    };
+    try {
+        const data = await messApi.uploadFilesMessage(clientOffset, conversationId, files);
+        response.data = data;
+        return response;
+    } catch (error) {
+        response.success = false;
+        if (error.response && error.response.status === 500) {
+            response.listErr.push({path: "message", msg: "Could not upload files"});
+        } else {
+            console.log("Error uploading files:", error);
+        }
+    }
+}
+
 export default {
     getMessages,
     newMessage,
+    uploadFilesMessage
 }

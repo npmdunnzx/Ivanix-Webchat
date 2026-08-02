@@ -294,6 +294,8 @@ Bash
 zrange "presence:online_users" 0 -1 withedscores
 (Nếu bản Redis cũ báo lỗi chữ withedscores, bạn chỉ cần đổi thành withscores là được).
 ```
+
+```
 Webchat
 ├─ be
 │  ├─ .env
@@ -306,6 +308,7 @@ Webchat
 │     │  ├─ cloudinary.config.js
 │     │  ├─ db.config.js
 │     │  ├─ env.config.js
+│     │  ├─ multer.config.js
 │     │  ├─ redis.config.js
 │     │  └─ server.config.js
 │     ├─ controller
@@ -313,6 +316,7 @@ Webchat
 │     │  ├─ conversation.controller.js
 │     │  ├─ friend.controller.js
 │     │  ├─ message.controller.js
+│     │  ├─ recommendation.controller.js
 │     │  └─ user.controller.js
 │     ├─ middlewares
 │     │  ├─ checkGroupChat.js
@@ -326,6 +330,7 @@ Webchat
 │     │  ├─ conversation.routes.js
 │     │  ├─ friend.routes.js
 │     │  ├─ message.routes.js
+│     │  ├─ recommendation.routes.js
 │     │  └─ user.routes.js
 │     ├─ services
 │     │  ├─ auth.service.js
@@ -333,6 +338,7 @@ Webchat
 │     │  ├─ friend.service.js
 │     │  ├─ message.service.js
 │     │  ├─ recommendation.service.js
+│     │  ├─ upload.service.js
 │     │  └─ user.service.js
 │     ├─ sockets
 │     │  ├─ conversation.socket.js
@@ -341,19 +347,19 @@ Webchat
 │     │  └─ presence.socket.js
 │     └─ utils
 │        ├─ presenceWorker.js
+│        ├─ recommendationWorker.js
 │        └─ utils.js
 ├─ docs
 │  ├─ API_DOC.md
-│  ├─ project_gap_assessment_plan.md
-│  ├─ redis_presence_recommendation_plan.md
 │  ├─ SRS_Webchat_realtime.md
-│  └─ swagger.yaml
+│  ├─ swagger.yaml
+│  └─ UI_DESIGN_GUIDELINE.md
 ├─ fe
 │  ├─ dist
 │  │  ├─ assets
 │  │  │  ├─ auth-B-v2zKgs.png
-│  │  │  ├─ index-BHrthtCa.js
-│  │  │  ├─ index-iHXt8V8i.css
+│  │  │  ├─ index-CReeSdRB.css
+│  │  │  ├─ index-DAFkdDIy.js
 │  │  │  ├─ logoauth-fBtg_yNQ.png
 │  │  │  └─ user_avatar-Bzrj67bo.png
 │  │  └─ public
@@ -368,7 +374,9 @@ Webchat
 │  │  │  ├─ auth.apis.js
 │  │  │  ├─ axiosClient.js
 │  │  │  ├─ conversation.apis.js
+│  │  │  ├─ friend.apis.js
 │  │  │  ├─ message.apis.js
+│  │  │  ├─ recommendation.apis.js
 │  │  │  └─ user.apis.js
 │  │  ├─ App.jsx
 │  │  ├─ assets
@@ -380,14 +388,25 @@ Webchat
 │  │  │     ├─ auth.css
 │  │  │     ├─ chat.css
 │  │  │     ├─ chatinfo.css
+│  │  │     ├─ ConfirmModal.css
 │  │  │     ├─ contacts.css
+│  │  │     ├─ CreateGroupModal.css
+│  │  │     ├─ fileattachment.css
 │  │  │     ├─ layout.css
+│  │  │     ├─ NewContactInfo.css
+│  │  │     ├─ settings.css
 │  │  │     ├─ sidebar.css
 │  │  │     ├─ storage.css
 │  │  │     └─ userinfo.css
 │  │  ├─ components
+│  │  │  ├─ AddMemberModal.jsx
 │  │  │  ├─ ChatInfo.jsx
+│  │  │  ├─ ConfirmModal.jsx
+│  │  │  ├─ CreateGroupModal.jsx
+│  │  │  ├─ FileAttachment.jsx
 │  │  │  ├─ LayoutPage.jsx
+│  │  │  ├─ NewContactInfo.jsx
+│  │  │  ├─ RenameGroupModal.jsx
 │  │  │  ├─ Sidebar.jsx
 │  │  │  └─ UserInfo.jsx
 │  │  ├─ context
@@ -398,14 +417,19 @@ Webchat
 │  │  │  ├─ AuthPage.jsx
 │  │  │  ├─ Chat.jsx
 │  │  │  ├─ Contacts.jsx
+│  │  │  ├─ Settings.jsx
 │  │  │  └─ Storage.jsx
 │  │  ├─ services
 │  │  │  ├─ auth.service.js
 │  │  │  ├─ conversation.service.js
+│  │  │  ├─ friend.service.js
 │  │  │  ├─ message.service.js
+│  │  │  ├─ recommendation.service.js
 │  │  │  ├─ socket.js
 │  │  │  └─ user.service.js
 │  │  └─ utils
+│  │     └─ toast.js
 │  └─ vite.config.js
-├─ implementation_guide.md
 └─ README.md
+
+```

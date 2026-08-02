@@ -18,6 +18,7 @@ import userService from "../services/user.service.js";
 import { AuthContext } from "../context/AuthContext.jsx";
 import debounce from "lodash.debounce";
 import NewContactInfo from "../components/NewContactInfo.jsx";
+import {useNavigate} from "react-router-dom";
 
 const TABS = {
   FRIENDS: 'friends',
@@ -27,6 +28,7 @@ const TABS = {
 };
 
 export default function Contacts() {
+  const navigate = useNavigate();
   const { userInfo } = useContext(AuthContext);
   const [friends, setFriends] = useState([]);
   const latestSearchId = useRef(0);
@@ -120,6 +122,10 @@ export default function Contacts() {
     setSearchKeyword(e.target.value);
   }
 
+  const handleStartChat = async (friend) => {
+    navigate(`/chat/${friend.id}`);
+  }
+
   return (
     <div className="contacts-page">
       <div className="contacts-inner">
@@ -208,7 +214,7 @@ export default function Contacts() {
                         </div>
 
                         <div className="contacts-card-footer">
-                          <button className="contacts-action-primary">
+                          <button className="contacts-action-primary" onClick={() => handleStartChat(friend)}>
                             <MessageSquare size={13} />
                             Nhắn tin
                           </button>

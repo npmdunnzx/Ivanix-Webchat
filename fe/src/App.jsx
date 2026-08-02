@@ -2,8 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthPage from "./pages/AuthPage.jsx";
 import Chat from "./pages/Chat.jsx";
-// import Settings from "./pages/SettingsPage.jsx";
-// import Search from "./pages/SearchPage.jsx";
+import Settings from "./pages/Settings.jsx";
 import Contacts from "./pages/Contacts.jsx";
 import Storage from "./pages/Storage.jsx";
 import LayoutPage from "./components/LayoutPage.jsx";
@@ -22,8 +21,8 @@ function App() {
 
         <Route element={<LayoutPage />}>
           <Route path="/chat" element={<Chat />} />
-          {/* <Route path="/settings" element={<Settings />} /> */}
-          {/* <Route path="/search" element={<Search />} /> */}
+          <Route path="/chat/:type/:conversationId" element={<Chat />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/storage" element={<Storage />} />
 

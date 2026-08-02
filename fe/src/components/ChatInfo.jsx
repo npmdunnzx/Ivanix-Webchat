@@ -19,7 +19,7 @@ import { notifyError, notifySuccess } from "../utils/toast.js";
 function ChatInfo(props) {
   const { userInfo } = useContext(AuthContext);
   const [members, setMembers] = useState([]);
-  const [isMembersOpen, setIsMembersOpen] = useState(true);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
 
   // Modal states
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
