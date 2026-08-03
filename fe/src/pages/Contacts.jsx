@@ -17,6 +17,7 @@ import friendService from "../services/friend.service.js";
 import userService from "../services/user.service.js";
 import { AuthContext } from "../context/AuthContext.jsx";
 import debounce from "lodash.debounce";
+import convService from "../services/conversation.service.js";
 import NewContactInfo from "../components/NewContactInfo.jsx";
 import {useNavigate} from "react-router-dom";
 
@@ -123,7 +124,17 @@ export default function Contacts() {
   }
 
   const handleStartChat = async (friend) => {
-    navigate(`/chat/${friend.id}`);
+    try {
+      const res = await convService.checkExistChat(friend.id);
+      if (res.success && res.data) {
+        const convId = res.data.result?.conversationId || res.data.conversationId || res.data.id;
+        if (convId) {
+          navigate(`/chat/private/${convId}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error starting chat:", error);
+    }
   }
 
   return (

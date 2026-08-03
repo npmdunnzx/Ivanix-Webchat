@@ -13,6 +13,7 @@ router.post("/groups/members", [checkGroupAdmin, checkGroupMemberLimit, addMembe
 router.post("/private", [startConversationRule(), validate], convController.checkExistChat);
 router.get("/search", convController.searchConversation);
 router.get("/groups/:conversation_id/members", [checkConversationMember], convController.getGroupMembers);
+router.get("/:conversation_id/attachments", [checkConversationMember], convController.getConversationAttachments);
 router.post("/leave", [checkConversationMember], convController.leaveConversation);
 router.post("/:conversation_id/history", [checkConversationMember], convController.delConversationHistory);
 router.post("/groups/members/remove", [checkGroupAdmin], convController.removeGroupMember);

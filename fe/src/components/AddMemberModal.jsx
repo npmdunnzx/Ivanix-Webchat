@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { UserPlus, X, Search, Check, Loader2 } from "lucide-react";
 import friendService from "../services/friend.service.js";
@@ -94,7 +95,7 @@ function AddMemberModal({ isOpen, onClose, conversationId, existingMembers = [],
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="create-group-backdrop" onClick={onClose}>
         <motion.div
@@ -222,7 +223,8 @@ function AddMemberModal({ isOpen, onClose, conversationId, existingMembers = [],
           </form>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

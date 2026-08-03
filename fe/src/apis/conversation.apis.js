@@ -89,6 +89,13 @@ const deleteGroupConversation = async (conversation_id) => {
   return response.data;
 };
 
+const getConversationAttachments = async (conversation_id, type) => {
+  const response = await axiosClient.get(
+    `/conversations/${conversation_id}/attachments${type ? `?type=${type}` : ""}`
+  );
+  return response.data;
+};
+
 export default {
   getAllConversations,
   newGroupChat,
@@ -102,4 +109,5 @@ export default {
   renameGroup,
   transferAdmin,
   deleteGroupConversation,
+  getConversationAttachments,
 };

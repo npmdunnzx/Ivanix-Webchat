@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertTriangle, X, Loader2 } from "lucide-react";
 import "../assets/styles/ConfirmModal.css";
@@ -16,7 +17,7 @@ function ConfirmModal({
 }) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="confirm-modal-backdrop" onClick={onClose}>
         <motion.div
@@ -68,7 +69,8 @@ function ConfirmModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

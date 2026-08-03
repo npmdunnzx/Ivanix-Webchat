@@ -6,8 +6,18 @@ import {
   ChevronDown,
   ShieldAlert,
   Edit3,
+  Image,
+  Film,
+  FileText,
+  FileSpreadsheet,
+  File,
+  Download,
+  Loader2,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { useEffect, useState, useCallback, useContext } from "react";
+import { createPortal } from "react-dom";
 import convService from "../services/conversation.service.js";
 import { AuthContext } from "../context/AuthContext.jsx";
 import UserInfo from "./UserInfo.jsx";
@@ -16,10 +26,100 @@ import RenameGroupModal from "./RenameGroupModal.jsx";
 import ConfirmModal from "./ConfirmModal.jsx";
 import { notifyError, notifySuccess } from "../utils/toast.js";
 
+function formatFileSize(bytes) {
+  if (!bytes || isNaN(bytes)) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileMeta(att) {
+  const url = att.file_url || "";
+  const fileName = att.file_name || url.split("/").pop() || "File";
+  const mimeType = (att.mime_type || "").toLowerCase();
+  const extParts = fileName.split(".");
+  const ext = extParts.length > 1 ? extParts.pop().toLowerCase() : "";
+
+  const isImage = mimeType.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext);
+  const isVideo = mimeType.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm"].includes(ext);
+
+  if (isImage) {
+    return {
+      type: "image",
+      fileName,
+      url,
+      size: formatFileSize(att.file_size),
+      icon: Image,
+      color: "#3b82f6",
+      bg: "rgba(59, 130, 246, 0.12)",
+    };
+  }
+  if (isVideo) {
+    return {
+      type: "video",
+      fileName,
+      url,
+      size: formatFileSize(att.file_size),
+      icon: Film,
+      color: "#f97316",
+      bg: "rgba(249, 115, 22, 0.12)",
+    };
+  }
+  if (mimeType === "application/pdf" || ext === "pdf") {
+    return {
+      type: "pdf",
+      fileName,
+      url,
+      size: formatFileSize(att.file_size),
+      icon: FileText,
+      color: "#ef4444",
+      bg: "rgba(239, 68, 68, 0.12)",
+    };
+  }
+  if (mimeType.includes("word") || ["doc", "docx"].includes(ext)) {
+    return {
+      type: "word",
+      fileName,
+      url,
+      size: formatFileSize(att.file_size),
+      icon: FileText,
+      color: "#2563eb",
+      bg: "rgba(37, 99, 235, 0.12)",
+    };
+  }
+  if ( mimeType.includes("excel") || mimeType.includes("spreadsheet") || ["xls", "xlsx", "csv"].includes(ext)) {
+    return {
+      type: "excel",
+      fileName,
+      url,
+      size: formatFileSize(att.file_size),
+      icon: FileSpreadsheet,
+      color: "#10b981",
+      bg: "rgba(16, 185, 129, 0.12)",
+    };
+  }
+  return {
+    type: "other",
+    fileName,
+    url,
+    size: formatFileSize(att.file_size),
+    icon: File,
+    color: "#64748b",
+    bg: "rgba(100, 116, 139, 0.12)",
+  };
+}
+
 function ChatInfo(props) {
   const { userInfo } = useContext(AuthContext);
   const [members, setMembers] = useState([]);
   const [isMembersOpen, setIsMembersOpen] = useState(false);
+
+  // Resource states
+  const [isResourceOpen, setIsResourceOpen] = useState(false);
+  const [resourceTab, setResourceTab] = useState("media"); // "media" | "file"
+  const [attachments, setAttachments] = useState([]);
+  const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+  const [previewItem, setPreviewItem] = useState(null);
 
   // Modal states
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
@@ -50,11 +150,35 @@ function ChatInfo(props) {
     } catch (error) {
       console.log("Could not get group's member:" + error.message);
     }
-  }, [conversationInfo?.id]);
+  }, [conversationInfo.id]);
 
   useEffect(() => {
     fetchGroupMembers();
   }, [fetchGroupMembers]);
+
+  // Fetch Attachments for Resources
+  const fetchAttachments = useCallback(async () => {
+    if (!conversationInfo?.id) return;
+    setIsLoadingAttachments(true);
+    try {
+      const result = await convService.getConversationAttachments(
+        conversationInfo.id,
+        resourceTab
+      );
+      const list = result.data?.result || result.data || [];
+      setAttachments(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error("Could not fetch conversation attachments:", error);
+    } finally {
+      setIsLoadingAttachments(false);
+    }
+  }, [conversationInfo.id, resourceTab]);
+
+  useEffect(() => {
+    if (isResourceOpen) {
+      fetchAttachments();
+    }
+  }, [fetchAttachments, isResourceOpen]);
 
   // Check if current logged-in user is admin of this group
   const currentUserMember = members.find((m) => m.id === userInfo?.id);
@@ -145,6 +269,7 @@ function ChatInfo(props) {
       if (res.success) {
         notifySuccess("Đã xóa lịch sử cuộc trò chuyện!");
         setIsDeleteHistoryConfirmOpen(false);
+        setAttachments([]);
         if (props.onHistoryCleared) {
           props.onHistoryCleared(conversationInfo.id);
         }
@@ -213,7 +338,7 @@ function ChatInfo(props) {
         </div>
       )}
 
-      {conversationInfo?.name || conversationInfo?.type === "group" ? (
+      {(conversationInfo?.name || conversationInfo?.type === "group") && (
         <div className="member-info info-1">
           <div className="member-header">
             <p>
@@ -245,16 +370,124 @@ function ChatInfo(props) {
             ))}
           </div>
         </div>
-      ) : (
-        <div className="info-1">
-          <p></p>
-        </div>
       )}
 
+      {/* Resource Section */}
       <div className="resource-info info-1">
-        <p>
-          <BookOpen /> Tài nguyên
-        </p>
+        <div className="resource-header">
+          <p>
+            <BookOpen /> Tài nguyên
+          </p>
+          <button
+            onClick={() => setIsResourceOpen(!isResourceOpen)}
+            className={`${isResourceOpen ? "open" : ""}`}
+            title={isResourceOpen ? "Thu gọn" : "Mở rộng"}
+          >
+            <ChevronDown />
+          </button>
+        </div>
+
+        {isResourceOpen && (
+          <div className="resource-body">
+            <div className="resource-tabs">
+              <button
+                type="button"
+                className={`resource-tab-btn ${resourceTab === "media" ? "active" : ""}`}
+                onClick={() => setResourceTab("media")}
+              >
+                <Image size={14} /> Ảnh & Video
+              </button>
+              <button
+                type="button"
+                className={`resource-tab-btn ${resourceTab === "file" ? "active" : ""}`}
+                onClick={() => setResourceTab("file")}
+              >
+                <FileText size={14} /> File / Tài liệu
+              </button>
+            </div>
+
+            <div className="resource-content">
+              {isLoadingAttachments ? (
+                <div className="resource-loading">
+                  <Loader2 size={20} className="spin-icon" />
+                  <span>Đang tải tài nguyên...</span>
+                </div>
+              ) : attachments.length === 0 ? (
+                <div className="resource-empty">
+                  <span>
+                    {resourceTab === "media"
+                      ? "Chưa có hình ảnh/video nào"
+                      : "Chưa có file/tài liệu nào"}
+                  </span>
+                </div>
+              ) : resourceTab === "media" ? (
+                <div className="resource-media-grid">
+                  {attachments.map((att) => {
+                    const meta = getFileMeta(att);
+                    return (
+                      <div
+                        key={att.id}
+                        className="resource-media-item"
+                        onClick={() => setPreviewItem(att)}
+                        title={meta.fileName}
+                      >
+                        {meta.type === "video" ? (
+                          <>
+                            <video src={meta.url} />
+                            <div className="resource-video-badge">
+                              <Film size={10} />
+                            </div>
+                          </>
+                        ) : (
+                          <img src={meta.url} alt={meta.fileName} />
+                        )}
+                        <div className="resource-media-overlay">
+                          <Maximize2 size={16} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="resource-file-list">
+                  {attachments.map((att) => {
+                    const meta = getFileMeta(att);
+                    const IconComp = meta.icon;
+                    return (
+                      <div key={att.id} className="resource-file-item">
+                        <div
+                          className="resource-file-icon"
+                          style={{ color: meta.color, backgroundColor: meta.bg }}
+                        >
+                          <IconComp size={18} />
+                        </div>
+                        <div className="resource-file-details">
+                          <span className="resource-file-name" title={meta.fileName}>
+                            {meta.fileName}
+                          </span>
+                          <span className="resource-file-meta">
+                            {meta.size && <span>{meta.size}</span>}
+                            {att.sender_username && <span> • {att.sender_username}</span>}
+                          </span>
+                        </div>
+                        <a
+                          href={meta.url}
+                          download
+                          target="_blank"
+                          rel="noreferrer"
+                          className="resource-file-download"
+                          title="Tải về"
+                        >
+                          <Download size={16} />
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="privacy-info info-1">
@@ -293,6 +526,34 @@ function ChatInfo(props) {
           </button>
         )}
       </div>
+
+      {/* Lightbox Preview Modal */}
+      {previewItem &&
+        createPortal(
+          <div className="resource-lightbox-overlay" onClick={() => setPreviewItem(null)}>
+            <div className="resource-lightbox-card" onClick={(e) => e.stopPropagation()}>
+              <div className="resource-lightbox-header">
+                <span className="resource-lightbox-title">
+                  {previewItem.file_name || "Xem trước"}
+                </span>
+                <button
+                  className="resource-lightbox-close"
+                  onClick={() => setPreviewItem(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="resource-lightbox-body">
+                {getFileMeta(previewItem).type === "video" ? (
+                  <video src={previewItem.file_url} controls autoPlay />
+                ) : (
+                  <img src={previewItem.file_url} alt={previewItem.file_name} />
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Modal Add Member */}
       {conversationInfo && (

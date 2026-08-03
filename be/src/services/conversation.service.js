@@ -351,6 +351,53 @@ const deleteGroupConversation = async (conversationId) => {
   }
 };
 
+const getAttachments = async (conversationId, userId, type = null) => {
+  let typeFilter = "";
+  if (type === "media" || type === "image" || type === "video") {
+    if (type === "image") {
+      typeFilter = "AND ma.mime_type LIKE 'image/%'";
+    } else if (type === "video") {
+      typeFilter = "AND ma.mime_type LIKE 'video/%'";
+    } else {
+      typeFilter = "AND (ma.mime_type LIKE 'image/%' OR ma.mime_type LIKE 'video/%')";
+    }
+  } else if (type === "file" || type === "document") {
+    typeFilter = "AND NOT (ma.mime_type LIKE 'image/%' OR ma.mime_type LIKE 'video/%')";
+  }
+
+  const query = `
+    SELECT 
+      ma.id,
+      ma.message_id,
+      ma.file_url,
+      ma.file_public_id,
+      ma.file_name,
+      ma.mime_type,
+      ma.file_size,
+      ma.display_order,
+      m.created_at,
+      m.sender_id,
+      u.username AS sender_username
+    FROM message_attachments ma
+    JOIN messages m ON m.id = ma.message_id
+    JOIN conversation_members cm ON cm.conversation_id = m.conversation_id AND cm.user_id = $2
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.conversation_id = $1
+      AND m.is_deleted = FALSE
+      AND (cm.cleared_history_at IS NULL OR m.created_at > cm.cleared_history_at)
+      ${typeFilter}
+    ORDER BY m.created_at DESC, ma.display_order ASC
+    LIMIT 100;
+  `;
+  try {
+    const { rows } = await db.query(query, [conversationId, userId]);
+    return rows;
+  } catch (error) {
+    console.error("Could not get conversation attachments: " + error.message);
+    throw new Error("Could not get conversation attachments: " + error.message);
+  }
+};
+
 export default {
   getAllConversations,
   checkExistChat,
@@ -365,4 +412,5 @@ export default {
   renameGroup,
   transferAdmin,
   deleteGroupConversation,
+  getAttachments,
 };

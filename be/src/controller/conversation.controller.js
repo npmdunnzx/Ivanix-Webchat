@@ -215,6 +215,20 @@ const deleteGroupConversation = async (req, res) => {
   }
 };
 
+const getConversationAttachments = async (req, res) => {
+  const conversation_id = req.params.conversation_id;
+  const userId = req.userId;
+  const type = req.query.type;
+  try {
+    const result = await convService.getAttachments(conversation_id, userId, type);
+    res.status(200).json({ message: "Get conversation attachments successfully", result });
+  } catch (error) {
+    console.error("Could not get attachments: " + error.message);
+    res
+      .status(500)
+      .json({ message: "Could not get attachments", error: error.message });
+  }
+};
 
 export default {
   getAllConversations,
@@ -230,5 +244,6 @@ export default {
   renameGroup,
   transferAdmin,
   deleteGroupConversation,
+  getConversationAttachments,
 };
 

@@ -286,6 +286,29 @@ const deleteGroupConversation = async (conversation_id) => {
   return response;
 };
 
+const getConversationAttachments = async (conversation_id, type) => {
+  const response = {
+    success: true,
+    listErr: [],
+    data: null,
+  };
+  try {
+    const data = await convApi.getConversationAttachments(conversation_id, type);
+    response.data = data;
+  } catch (error) {
+    response.success = false;
+    if (error.response && error.response.status === 500) {
+      response.listErr.push({
+        path: "conversation",
+        msg: "Could not get attachments",
+      });
+    } else {
+      console.error("Error getting attachments:", error);
+    }
+  }
+  return response;
+};
+
 export default {
   getAllConversations,
   newGroupChat,
@@ -299,4 +322,5 @@ export default {
   renameGroup,
   transferAdmin,
   deleteGroupConversation,
+  getConversationAttachments,
 };

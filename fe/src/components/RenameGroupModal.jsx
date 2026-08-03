@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Edit3, X, Loader2 } from "lucide-react";
 import convService from "../services/conversation.service.js";
@@ -52,7 +53,7 @@ function RenameGroupModal({ isOpen, onClose, conversationId, currentName = "", o
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="create-group-backdrop" onClick={onClose}>
         <motion.div
@@ -106,7 +107,7 @@ function RenameGroupModal({ isOpen, onClose, conversationId, currentName = "", o
                 {isSubmitting ? (
                   <>
                     <Loader2 size={16} className="spin-icon" />
-                    <span>Đang luôn...</span>
+                    <span>Đang lưu...</span>
                   </>
                 ) : (
                   "Lưu thay đổi"
@@ -116,7 +117,8 @@ function RenameGroupModal({ isOpen, onClose, conversationId, currentName = "", o
           </form>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

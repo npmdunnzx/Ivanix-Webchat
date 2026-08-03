@@ -317,7 +317,11 @@ function Chat() {
             >
               <Users size={20} />
             </button>
-            <button className="messages-add-button">
+            <button
+              className="messages-add-button"
+              onClick={() => navigate("/contacts")}
+              title="Tìm bạn bè nhắn tin"
+            >
               <MessageSquarePlus size={20} />
             </button>
           </div>
@@ -340,7 +344,15 @@ function Chat() {
                 className={`channel-item ${conv.id === selectedConversation?.id ? "active" : ""}`}
               >
                 <div className="channel-avatar">
-                  <Users size={18} />
+                  {conv.partner_avatar ? (
+                    <img
+                      src={conv.partner_avatar}
+                      alt={conv.partner_username}
+                      className="partner-avatar"
+                    />
+                  ) : (
+                    <Users size={18} />
+                  )}
                   {conv.unread_count > 0 && (
                     <span className="unread-dot">{conv.unread_count}</span>
                   )}
@@ -531,7 +543,7 @@ function Chat() {
 
             {/* Text */}
             <div className="empty-text">
-              <h2 className="empty-title">Chưa có cuộc trò chuyện</h2>
+              <h2 className="empty-title">Ivanix</h2>
               <p className="empty-subtitle">Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin</p>
             </div>
 
