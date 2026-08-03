@@ -220,13 +220,13 @@
   color: green;
 }
 
-.form-group {
+.form-group-auth {
   display: flex;
   flex-direction: column;
   margin-bottom: 1rem;
 }
 
-.form-group label,
+.form-group-auth label,
 .remember-group label {
   color: var(--auth-panel-text);
   font-size: 0.95rem;
@@ -234,15 +234,15 @@
   margin-bottom: 0.45rem;
 }
 
-.form-group input,
-.form-group button {
+.form-group-auth input,
+.form-group-auth button {
   font-size: 1rem;
   border: 1px solid var(--auth-border);
   border-radius: 12px;
   padding: 14px 14px 14px 45px;
 }
 
-.form-group button  {
+.form-group-auth button  {
   background-color: var(--auth-primary);
   color: var(--auth-primary-text);
   font-weight: bold;

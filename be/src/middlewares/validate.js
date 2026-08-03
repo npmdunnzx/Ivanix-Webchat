@@ -12,8 +12,8 @@ const signupRule = () => {
       .notEmpty()
       .withMessage("Username is required")
       .trim()
-      .isLength({ min: 5, max: 15 })
-      .withMessage("Username must be between 5 and 15 characters")
+      .isLength({ min: 5, max: 20 })
+      .withMessage("Username must be between 5 and 20 characters")
       .matches(/^[A-Za-z][A-Za-z0-9_]*$/)
       .withMessage(
         "Username must start with a letter and contain only letters and numbers",

@@ -2,6 +2,8 @@ import {raw} from "express";
 import config from "../config/env.config.js";
 import userService from "../services/user.service.js";
 
+import uploadService from "../services/upload.service.js";
+
 const profile = async (req, res) => {
     const email = req.email;
     try {
@@ -25,4 +27,22 @@ const search = async (req, res) => {
     }
 }
 
-export default {profile, search};
+const updateProfile = async (req, res) => {
+    const userId = req.userId;
+    const { username } = req.body;
+    try {
+        let avatar_url = undefined;
+        if (req.file) {
+            const uploadResult = await uploadService.uploadFile(req.file, "avatars");
+            avatar_url = uploadResult.url;
+        }
+
+        const updatedUser = await userService.updateProfile(userId, { username, avatar_url });
+        res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+    } catch (error) {
+        console.error("Update profile error:", error.message);
+        res.status(500).json({ message: "Could not update profile", error: error.message });
+    }
+}
+
+export default { profile, search, updateProfile };

@@ -1,12 +1,12 @@
 :root {
-  --sidebar-bg: #f6f7f9;
-  --sidebar-bg-low: #eef1f4;
-  --sidebar-bg-high: #e5e9ee;
-  --sidebar-bg-highest: #dde3ea;
-  --sidebar-border: #d7dee7;
-  --sidebar-text: #111827;
+  --sidebar-bg: #f8f8fc;
+  --sidebar-bg-low: #f0f0f9;
+  --sidebar-bg-high: #e8e8f5;
+  --sidebar-bg-highest: #deddf0;
+  --sidebar-border: #ddddf5;
+  --sidebar-text: #0f172a;
   --sidebar-muted: #64748b;
-  --sidebar-primary: #123a4a;
+  --sidebar-primary: #6366f1;
   --sidebar-error: #ef4444;
 }
 
@@ -57,7 +57,7 @@
   background: var(--sidebar-primary);
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 8px 18px rgba(18, 58, 74, 0.2);
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.25);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease;
@@ -66,7 +66,7 @@
 .sidebar-icon:hover {
   cursor: pointer;
   transform: scale(1.05);
-  box-shadow: 0 10px 22px rgba(18, 58, 74, 0.26);
+  box-shadow: 0 10px 22px rgba(99, 102, 241, 0.32);
 }
 
 .sidebar-title {
@@ -135,7 +135,7 @@
 .nav-item.active {
   background: var(--sidebar-primary);
   color: #fff;
-  box-shadow: 0 8px 18px rgba(18, 58, 74, 0.2);
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.25);
 }
 
 .nav-item.active p:first-child {

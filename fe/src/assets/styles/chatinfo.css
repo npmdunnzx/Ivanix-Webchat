@@ -117,10 +117,10 @@
 
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px dashed rgba(0, 112, 243, 0.3);
-  background-color: rgba(0, 112, 243, 0.05); /* primary/5 */
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  background-color: rgba(99, 102, 241, 0.06);
 
-  color: #0070f3;
+  color: #6366f1;
   font-size: 0.75rem;
   font-weight: 700;
 
@@ -139,10 +139,10 @@
 .leave-chat {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px dashed rgba(255, 0, 0, 0.3);
-  background-color: rgba(255, 0, 0, 0.05); /* primary/5 */
+  border: 1px dashed rgba(239, 68, 68, 0.35);
+  background-color: rgba(239, 68, 68, 0.06);
 
-  color: #ff0000;
+  color: #ef4444;
   font-size: 0.75rem;
   font-weight: 700;
 
@@ -161,10 +161,10 @@
 .delete-group {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px dashed rgba(255, 0, 0, 0.3);
-  background-color: rgba(255, 0, 0, 0.05); /* primary/5 */
+  border: 1px dashed rgba(239, 68, 68, 0.35);
+  background-color: rgba(239, 68, 68, 0.06);
 
-  color: #ff0000;
+  color: #ef4444;
   font-size: 0.75rem;
   font-weight: 700;
 

@@ -47,14 +47,13 @@ function Chat() {
       try {
         const convs = await convService.getAllConversations();
         setConversations(convs.data.result);
-        setSelectedConversation(
-          findZeroUnreadConversation(convs.data.result) || convs.data.result[0],
-        );
-        // console.log("data:", convs.data);
-        console.log(
-          "conversations:",
-          findZeroUnreadConversation(convs.data.result),
-        );
+        // setSelectedConversation(
+        //   findZeroUnreadConversation(convs.data.result) || convs.data.result[0],
+        // );
+        // console.log(
+        //   "conversations:",
+        //   findZeroUnreadConversation(convs.data.result),
+        // );
       } catch (error) {
         console.error("Could not fetch conversations:" + error.message);
       }
@@ -72,11 +71,6 @@ function Chat() {
       setSelectedConversation(targetConv);
     } else {
       navigate("/chat", { replace: true });
-    }
-  } else {
-    const defaultConv = findZeroUnreadConversation(conversations) || conversations[0];
-    if (defaultConv) {
-      setSelectedConversation(defaultConv);
     }
   }
 }, [conversationId, conversations, navigate]);
@@ -371,6 +365,7 @@ function Chat() {
           )}
         </div>
       </motion.aside>
+      { selectedConversation ? (
       <div className="chat-container">
         <div className="chat-header">
           {selectedConversation?.partner_avatar ? (
@@ -401,22 +396,62 @@ function Chat() {
               const hasText = Boolean(msg.content && msg.content.trim());
               const hasAttachments = msg.attachments && msg.attachments.length > 0;
 
+              // Xác định nhóm liên tiếp
+              const prevMsg = messages[index - 1];
+              const nextMsg = messages[index + 1];
+              const isFirstInGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+              const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
+
               return (
                 <li
                   key={msg.server_offset || msg.client_offset || index}
-                  className={`msg-row ${isMine ? "mine" : "other"}`}
+                  className={[
+                    "msg-row",
+                    isMine ? "mine" : "other",
+                    isFirstInGroup ? "first-in-group" : "cont-in-group",
+                    isLastInGroup ? "last-in-group" : "",
+                  ].join(" ")}
                 >
-                  {/* Bong bóng văn bản (chỉ render khi có chữ) */}
-                  {hasText && (
-                    <div className="msg-text-bubble">
-                      <p>{msg.content}</p>
+                  {/* Cột trái: Avatar (chỉ với tin người khác) */}
+                  {!isMine && (
+                    <div className="msg-avatar-col">
+                      {isFirstInGroup ? (
+                        msg.sender_avt ? (
+                          <img
+                            src={msg.sender_avt}
+                            alt={msg.sender_username}
+                            className="msg-sender-avatar"
+                          />
+                        ) : (
+                          <div className="msg-sender-avatar msg-sender-avatar-fallback">
+                            {(msg.sender_username || "?")[0].toUpperCase()}
+                          </div>
+                        )
+                      ) : (
+                        <div className="msg-avatar-spacer" />
+                      )}
                     </div>
                   )}
 
-                  {/* Hiển thị đính kèm — Độc lập, không bị bao bởi màu bubble mine/other */}
-                  {hasAttachments && (
-                    <MessageAttachments attachments={msg.attachments} />
-                  )}
+                  {/* Cột phải: Tên + Bubbles */}
+                  <div className="msg-body-col">
+                    {/* Tên người gửi — chỉ hiện ở tin đầu nhóm */}
+                    {!isMine && isFirstInGroup && (
+                      <span className="msg-sender-name">{msg.sender_username}</span>
+                    )}
+
+                    {/* Bong bóng văn bản */}
+                    {hasText && (
+                      <div className="msg-text-bubble">
+                        <p>{msg.content}</p>
+                      </div>
+                    )}
+
+                    {/* Đính kèm */}
+                    {hasAttachments && (
+                      <MessageAttachments attachments={msg.attachments} />
+                    )}
+                  </div>
                 </li>
               );
             })}
@@ -451,20 +486,79 @@ function Chat() {
           </form>
         </div>
       </div>
+            ) : (
+        <div className="chat-container chat-container--empty">
+          <div className="empty-state">
+            {/* Blobs nền */}
+            <div className="empty-blob empty-blob--1" />
+            <div className="empty-blob empty-blob--2" />
+            <div className="empty-blob empty-blob--3" />
+
+            {/* Illustration bong bóng chat */}
+            <div className="empty-illustration">
+              <div className="bubble-stack">
+                <div className="bubble bubble--a">
+                  <span>Xin chào! 👋</span>
+                </div>
+                <div className="bubble bubble--b">
+                  <span>Hôm nay bạn thế nào?</span>
+                </div>
+              </div>
+              <div className="empty-avatar-ring">
+                <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="40" cy="40" r="38" stroke="url(#ringGrad)" strokeWidth="2" strokeDasharray="6 4" />
+                  <defs>
+                    <linearGradient id="ringGrad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#6366f1" />
+                      <stop offset="1" stopColor="#06b6d4" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="empty-avatar-icon">
+                  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                    <circle cx="20" cy="14" r="7" fill="url(#avatarGrad)" />
+                    <ellipse cx="20" cy="30" rx="12" ry="7" fill="url(#avatarGrad)" opacity="0.7" />
+                    <defs>
+                      <linearGradient id="avatarGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#6366f1" />
+                        <stop offset="1" stopColor="#06b6d4" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Text */}
+            <div className="empty-text">
+              <h2 className="empty-title">Chưa có cuộc trò chuyện</h2>
+              <p className="empty-subtitle">Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin</p>
+            </div>
+
+            {/* Dots trang trí */}
+            <div className="empty-dots">
+              <span /><span /><span />
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedConversation && (
       <ChatInfo 
         conversation={selectedConversation} 
         isOpen={isChatInfoOpen} 
         onConversationRemoved={handleConversationRemoved}
         onGroupRenamed={handleGroupRenamed}
         onHistoryCleared={handleHistoryCleared}
-      />
+      />)}
       <CreateGroupModal
         isOpen={isCreateGroupOpen}
         onClose={() => setIsCreateGroupOpen(false)}
         onGroupCreated={handleGroupCreated}
       />
+
     </div>
   );
 }
 
 export default Chat;
+

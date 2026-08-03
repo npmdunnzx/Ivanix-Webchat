@@ -97,7 +97,7 @@
 
 .messages-search input:focus {
   border-color: var(--sidebar-primary);
-  box-shadow: 0 0 0 2px rgba(18, 58, 74, 0.12);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .channel-list {
@@ -375,27 +375,102 @@ p.unread {
 }
 
 #messages > li {
-  max-width: min(75%, 560px);
-  min-width: 40px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  box-shadow: none;
-  background: transparent;
-  padding: 0;
-}
-
-#messages > li.other {
-  align-self: flex-start;
+  flex-direction: row;
   align-items: flex-start;
+  gap: 8px;
+  max-width: min(78%, 600px);
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
+/* Tin của mình — căn phải, đảo ngược hướng */
 #messages > li.mine {
   align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+/* Tin của người khác — căn trái */
+#messages > li.other {
+  align-self: flex-start;
+}
+
+/* Khoảng cách: tin đầu nhóm có thêm margin trên */
+#messages > li.first-in-group {
+  margin-top: 10px;
+}
+
+/* Tin liên tiếp trong nhóm — sát nhau hơn */
+#messages > li.cont-in-group {
+  margin-top: 2px;
+}
+
+/* Cột avatar bên trái */
+.msg-avatar-col {
+  flex-shrink: 0;
+  width: 36px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+/* Spacer giữ chỗ khi không có avatar (tin giữa nhóm) */
+.msg-avatar-spacer {
+  width: 36px;
+  height: 36px;
+}
+
+/* Avatar hình tròn */
+.msg-sender-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* Fallback chữ cái đầu */
+.msg-sender-avatar-fallback {
+  background: var(--sidebar-primary, #6366f1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cột body: tên + bubbles */
+.msg-body-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mine .msg-body-col {
   align-items: flex-end;
 }
 
-/* Bong bóng văn bản riêng biệt */
+.other .msg-body-col {
+  align-items: flex-start;
+}
+
+/* Tên người gửi — chỉ hiện ở tin đầu nhóm */
+.msg-sender-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sidebar-muted, #94a3b8);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* Bong bóng văn bản */
 .msg-text-bubble {
   padding: 10px 14px;
   border-radius: 18px;
@@ -413,14 +488,17 @@ p.unread {
 }
 
 #messages > li.mine .msg-text-bubble {
-  background: var(--sidebar-primary);
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
   color: #ffffff;
   border-bottom-right-radius: 5px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
 .msg-text-bubble p {
   margin: 0;
 }
+
+
 
 #form {
   display: flex;
@@ -462,7 +540,7 @@ p.unread {
 #input:focus {
   outline: none;
   border-color: var(--sidebar-primary);
-  box-shadow: 0 0 0 3px rgba(18, 58, 74, 0.12);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 #form .form-row > button {
@@ -480,7 +558,7 @@ p.unread {
 }
 
 #form .form-row > button:hover {
-  background: #0d2d3a;
+  background: #4f46e5;
   transform: translateY(-1px);
 }
 
@@ -542,4 +620,236 @@ p.unread {
   #form > button {
     padding: 0 14px;
   }
+}
+
+/* ============================================================
+   EMPTY STATE — khi chưa chọn cuộc trò chuyện
+   ============================================================ */
+
+.chat-container--empty {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.07) 0%, transparent 55%),
+    #f8fafc;
+}
+
+.empty-state {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 40px;
+  overflow: hidden;
+}
+
+/* ── Blobs nền ── */
+.empty-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.empty-blob--1 {
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, #c7d2fe 0%, #6366f1 60%, transparent 100%);
+  top: -80px;
+  right: -60px;
+  animation: blobFloat1 8s ease-in-out infinite;
+}
+
+.empty-blob--2 {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, #a5f3fc 0%, #06b6d4 60%, transparent 100%);
+  bottom: -60px;
+  left: -40px;
+  animation: blobFloat2 10s ease-in-out infinite;
+}
+
+.empty-blob--3 {
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, #fde68a 0%, #f59e0b 60%, transparent 100%);
+  bottom: 20%;
+  right: 10%;
+  animation: blobFloat3 12s ease-in-out infinite;
+}
+
+@keyframes blobFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-20px, 20px) scale(1.05); }
+  66%       { transform: translate(15px, -15px) scale(0.97); }
+}
+
+@keyframes blobFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(20px, -20px) scale(1.08); }
+  70%       { transform: translate(-10px, 12px) scale(0.95); }
+}
+
+@keyframes blobFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-18px, 18px) scale(1.1); }
+}
+
+/* ── Illustration container ── */
+.empty-illustration {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Vòng xoay dashed ── */
+.empty-avatar-ring {
+  position: absolute;
+  inset: 0;
+  animation: spinRing 20s linear infinite;
+}
+
+.empty-avatar-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes spinRing {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Avatar icon trung tâm ── */
+.empty-avatar-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: spinRing 20s linear infinite reverse; /* counter-rotate để giữ thẳng */
+}
+
+.empty-avatar-icon > svg {
+  filter: drop-shadow(0 4px 16px rgba(99, 102, 241, 0.35));
+}
+
+/* ── Bubble stack ── */
+.bubble-stack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bubble {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.1);
+  opacity: 0;
+  animation: bubblePop 0.6s ease forwards;
+}
+
+.bubble--a {
+  top: -22px;
+  left: -68px;
+  background: #fff;
+  color: #1e293b;
+  animation-delay: 0.3s;
+  animation-name: bubblePopLeft;
+}
+
+.bubble--b {
+  bottom: -14px;
+  left: -88px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  animation-delay: 0.6s;
+  animation-name: bubblePopLeft;
+}
+
+.bubble--c {
+  top: 10px;
+  right: -52px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 20px;
+  animation-delay: 0.9s;
+  animation-name: bubblePopRight;
+}
+
+@keyframes bubblePopLeft {
+  0%   { opacity: 0; transform: translateX(16px) scale(0.8); }
+  60%  { opacity: 1; transform: translateX(-4px) scale(1.04); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes bubblePopRight {
+  0%   { opacity: 0; transform: translateX(-16px) scale(0.8); }
+  60%  { opacity: 1; transform: translateX(4px) scale(1.04); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ── Text block ── */
+.empty-text {
+  text-align: center;
+  animation: fadeSlideUp 0.7s ease 1.1s both;
+}
+
+.empty-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+}
+
+.empty-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sidebar-muted, #94a3b8);
+  line-height: 1.6;
+  max-width: 300px;
+}
+
+/* ── Decorative dots ── */
+.empty-dots {
+  display: flex;
+  gap: 8px;
+  animation: fadeSlideUp 0.7s ease 1.3s both;
+}
+
+.empty-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #06b6d4);
+  animation: dotPulse 1.8s ease-in-out infinite;
+}
+
+.empty-dots span:nth-child(2) { animation-delay: 0.3s; }
+.empty-dots span:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.5; }
+  50%       { transform: scale(1.4); opacity: 1; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

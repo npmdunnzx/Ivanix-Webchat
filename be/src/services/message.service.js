@@ -99,8 +99,11 @@ const newMessage = async (
     let message;
     if (rows.length === 0) {
       const query2 = `
-        SELECT id, server_offset, client_offset, content, sender_id, conversation_id, created_at
-        FROM messages WHERE client_offset = $1`;
+        SELECT m.id, m.server_offset, m.client_offset, m.content, m.sender_id, m.conversation_id, m.created_at,
+               u.username AS sender_username, u.avatar_url AS sender_avt
+        FROM messages m
+        JOIN users u ON u.id = m.sender_id
+        WHERE m.client_offset = $1`;
       const existing = await client.query(query2, [clientOffset]);
       await client.query("COMMIT");
       return existing.rows[0];
@@ -118,8 +121,11 @@ const newMessage = async (
         SET unread_count = unread_count + 1
         WHERE conversation_id = $1 AND user_id != $2`;
     await client.query(query4, [conversationId, senderId]);
+    // Lấy sender_username và sender_avt để trả về cùng message
+    const queryUser = `SELECT username AS sender_username, avatar_url AS sender_avt FROM users WHERE id = $1`;
+    const { rows: userRows } = await client.query(queryUser, [senderId]);
     await client.query("COMMIT");
-    return message;
+    return { ...message, ...userRows[0] };
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Could not create message: " + error.message);

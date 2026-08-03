@@ -146,7 +146,7 @@ function AuthPage() {
                 <span className="success-message">{successMess}</span>
                 <p>Vui lòng nhập thông tin đăng nhập của bạn.</p>
                 <form onSubmit={handleLogin}>
-                  <div className="form-group">
+                  <div className="form-group-auth">
                     <label htmlFor="email">Email</label>
                     <div className="input-wrapper">
                       <MdEmail className="icon" size={22} />
@@ -164,7 +164,7 @@ function AuthPage() {
                     </div>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group-auth">
                     <label htmlFor="password">Mật khẩu</label>
                     <div className="input-wrapper">
                       <MdLock className="icon" size={22} />
@@ -213,7 +213,7 @@ function AuthPage() {
               >
                 <p>Vui lòng nhập thông tin đăng ký của bạn.</p>
                 <form onSubmit={handleSignup}>
-                  <div className="form-group">
+                  <div className="form-group-auth">
                     <label htmlFor="username">Tên đăng nhập</label>
                     <div className="input-wrapper">
                       <MdPerson className="icon" size={22} />
@@ -235,7 +235,7 @@ function AuthPage() {
                     <span className="error-message">{signupMess.username}</span>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group-auth">
                     <label htmlFor="signup-email">Email</label>
                     <div className="input-wrapper">
                       <MdEmail className="icon" size={22} />
@@ -257,7 +257,7 @@ function AuthPage() {
                     <span className="error-message">{signupMess.email}</span>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group-auth">
                     <label htmlFor="signup-password">Mật khẩu</label>
                     <div className="input-wrapper">
                       <MdLock className="icon" size={22} />

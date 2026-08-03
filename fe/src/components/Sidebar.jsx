@@ -84,7 +84,7 @@ function Sidebar() {
             onClick={() => navigate("/settings")}
           >
             <div className="profile-icon">
-              <img src={user_avatar} alt="Profile" />
+              <img src={userInfo?.avatar_url || user_avatar} alt="Profile" />
             </div>
             {!isChat && (
               <motion.div

@@ -4,10 +4,8 @@ import utils from "../utils/utils.js";
 import config from "../config/env.config.js";
 import db from "../config/db.config.js";
 
-const salt = bcrypt.genSaltSync(config.BCRYPT.saltRounds);
-
 const signup = async (username, email, password) => {
-  const hashedPw = bcrypt.hashSync(password, salt);
+  const hashedPw = await bcrypt.hash(password, config.BCRYPT.saltRounds ?? 10);
 
   const query =
     "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email";
@@ -50,9 +48,5 @@ const login = async (email, password) => {
     throw new Error("Could not login" + error.message);
   }
 };
-
-// const logout = async (userId) => {
-
-// }
 
 export default { signup, login };

@@ -57,4 +57,32 @@ LIMIT 15;`;
   }
 };
 
-export default { profile, search };
+const updateProfile = async (userId, { username, avatar_url }) => {
+  try {
+    let query = "";
+    let params = [];
+
+    if (username && avatar_url) {
+      query = "UPDATE users SET username = $1, avatar_url = $2 WHERE id = $3 RETURNING id, username, email, avatar_url";
+      params = [username, avatar_url, userId];
+    } else if (avatar_url) {
+      query = "UPDATE users SET avatar_url = $1 WHERE id = $2 RETURNING id, username, email, avatar_url";
+      params = [avatar_url, userId];
+    } else if (username) {
+      query = "UPDATE users SET username = $1 WHERE id = $2 RETURNING id, username, email, avatar_url";
+      params = [username, userId];
+    } else {
+      const getQuery = "SELECT id, username, email, avatar_url FROM users WHERE id = $1";
+      const { rows } = await db.query(getQuery, [userId]);
+      return rows[0];
+    }
+
+    const { rows } = await db.query(query, params);
+    return rows[0];
+  } catch (error) {
+    console.error("Could not update profile:", error.message);
+    throw new Error("Could not update profile: " + error.message);
+  }
+};
+
+export default { profile, search, updateProfile };

@@ -16,4 +16,9 @@ const login = async (email, password, rememberMe) => {
 }
 
 
-export default {signup, login};
+const logout = async () => {
+    const response = await axiosClient.post("/auth/logout");
+    return response.data;
+}
+
+export default { signup, login, logout };
