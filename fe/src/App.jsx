@@ -7,6 +7,7 @@ import Contacts from "./pages/Contacts.jsx";
 import Storage from "./pages/Storage.jsx";
 import LayoutPage from "./components/LayoutPage.jsx";
 import { Toaster } from "react-hot-toast";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
   return (
@@ -19,15 +20,17 @@ function App() {
         <Route path="/login" element={<AuthPage />} />
         <Route path="/signup" element={<AuthPage />} />
 
-        <Route element={<LayoutPage />}>
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/chat/:type/:conversationId" element={<Chat />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/storage" element={<Storage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<LayoutPage />}>
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat/:type/:conversationId" element={<Chat />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/storage" element={<Storage />} />
 
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/chat" replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/chat" replace />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
