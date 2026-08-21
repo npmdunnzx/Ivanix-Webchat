@@ -165,4 +165,22 @@ const getFriends = async (userId) => {
   }
 };
 
-export default { sendRequest, responseRequest, cancelRequest, getPendingRequests, getMyRequests, getFriends  };
+const deleteFriend = async (userId, friendId) => {
+  const user1 = userId < friendId ? userId : friendId;
+  const user2 = userId < friendId ? friendId : userId;
+  const query = `
+    DELETE FROM friendships
+    WHERE user_id1 = $1 AND user_id2 = $2
+    RETURNING *`;
+  try {
+    const { rows } = await db.query(query, [user1, user2]);
+    if (rows.length === 0) {
+      throw new Error("No friendship found to delete");
+    }
+    return rows[0];
+  } catch (error) {
+    throw new Error("Error occurred while deleting friend" + error.message);
+  }
+}
+
+export default { sendRequest, responseRequest, cancelRequest, getPendingRequests, getMyRequests, getFriends, deleteFriend };

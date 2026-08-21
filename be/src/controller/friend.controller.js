@@ -68,11 +68,27 @@ const getMyRequests = async (req, res) => {
     }
 }
 
+const deleteFriend = async (req, res) => {
+    const userId = req.userId;
+    const { friendId } = req.body;
+    try {
+        const deletedFriend = await friendService.deleteFriend(userId, friendId);
+        if (deletedFriend) {
+            res.status(200).json({ message: "Friend deleted successfully", data: deletedFriend });
+        } else {
+            res.status(404).json({ message: "Friend not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Could not delete friend", error: error.message });
+    }
+}
+
 export default {
     sendRequest,
     responseRequest,
     cancelRequest,
     getPendingRequest,
     getFriends,
-    getMyRequests
+    getMyRequests,
+    deleteFriend
 }

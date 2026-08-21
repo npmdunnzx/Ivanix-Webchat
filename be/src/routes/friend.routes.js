@@ -12,5 +12,6 @@ router.get("/pending-requests", friendController.getPendingRequest);
 router.get("/", friendController.getFriends);
 router.post("/cancel-request", friendController.cancelRequest);
 router.get("/my-requests", friendController.getMyRequests);
+router.delete("/delete-friend", friendController.deleteFriend);
 
 export default router;
