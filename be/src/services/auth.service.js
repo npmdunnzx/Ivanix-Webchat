@@ -45,7 +45,7 @@ const login = async (email, password) => {
     return userData;
   } catch (error) {
     console.error("Could not login:" + error.message);
-    throw new Error("Could not login" + error.message);
+    throw new Error("Could not login. " + error.message);
   }
 };
 
