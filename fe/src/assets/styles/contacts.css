@@ -307,24 +307,6 @@
   background: var(--sidebar-primary-dark, #0D2D3A);
 }
 
-.contacts-action-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  background: var(--sidebar-bg-low);
-  border: 1px solid var(--sidebar-border);
-  border-radius: 12px;
-  color: var(--sidebar-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.contacts-action-more:hover {
-  background: var(--sidebar-bg-highest);
-  color: var(--sidebar-text);
-}
-
 /* ── Search Large (Add Friend Tab) ── */
 .contacts-search-large {
   position: relative;

@@ -1,0 +1,262 @@
+/* Loading Screen Styling for Ivanix Webchat */
+.auth-loading-container {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: radial-gradient(circle at 50% 30%, #0c252d 0%, #06151b 60%, #030a0d 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Background Glow Effects */
+.auth-loading-bg-glow {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0, 245, 196, 0.12) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 75%);
+  pointer-events: none;
+  filter: blur(40px);
+}
+
+/* Top Header Bar */
+.auth-loading-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.auth-loading-header-title {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #cbd5e1;
+  margin: 0 auto;
+}
+
+.auth-loading-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: absolute;
+  right: 1.5rem;
+}
+
+.auth-loading-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-loading-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* Main Content Area */
+.auth-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  margin: auto 0;
+  z-index: 1;
+}
+
+/* Logo Box */
+.auth-loading-logo-wrapper {
+  position: relative;
+  margin-bottom: 1.75rem;
+}
+
+.auth-loading-logo-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(0, 245, 196, 0.1));
+  border: 1.5px solid rgba(0, 245, 196, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00f5c4;
+  box-shadow: 0 0 25px rgba(0, 245, 196, 0.25), inset 0 0 15px rgba(0, 245, 196, 0.15);
+}
+
+/* App Branding */
+.auth-loading-branding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.auth-loading-app-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  margin: 0;
+}
+
+.auth-loading-badge {
+  background: rgba(0, 245, 196, 0.15);
+  border: 1px solid rgba(0, 245, 196, 0.3);
+  color: #00f5c4;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.auth-loading-subtitle {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+/* Glassmorphism Loading Card */
+.auth-loading-card {
+  width: 100%;
+  background: rgba(10, 32, 40, 0.65);
+  border: 1px solid rgba(0, 245, 196, 0.2);
+  backdrop-filter: blur(16px);
+  border-radius: 18px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.auth-loading-step-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #00f5c4;
+}
+
+/* Progress Track */
+.auth-loading-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.auth-loading-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #06b6d4 0%, #00f5c4 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 12px rgba(0, 245, 196, 0.6);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-loading-progress-bar-pulse {
+  height: 100%;
+  width: 45%;
+  background: linear-gradient(90deg, #06b6d4 0%, #00f5c4 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 12px rgba(0, 245, 196, 0.6);
+  animation: indeterminate-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes indeterminate-pulse {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+/* Footer Status Row inside Card */
+.auth-loading-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.auth-loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.auth-loading-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #00f5c4;
+  box-shadow: 0 0 8px #00f5c4;
+  animation: pulse-dot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.auth-loading-percentage {
+  color: #00f5c4;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* Footer Bottom Actions */
+.auth-loading-bottom {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.auth-loading-skip-btn {
+  background: none;
+  border: none;
+  color: #00f5c4;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 0.8rem;
+  transition: color 0.2s ease;
+}
+
+.auth-loading-skip-btn:hover {
+  color: #38bdf8;
+}
