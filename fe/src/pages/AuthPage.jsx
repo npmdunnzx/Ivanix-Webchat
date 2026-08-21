@@ -144,6 +144,11 @@ function AuthPage() {
                 exit={{ opacity: 0 }}
               >
                 <span className="success-message">{successMess}</span>
+                {(loginMess.general || loginMess.auth) && (
+                  <span className="error-message" style={{ display: "block", marginBottom: "10px" }}>
+                    {loginMess.general || loginMess.auth}
+                  </span>
+                )}
                 <p>Vui lòng nhập thông tin đăng nhập của bạn.</p>
                 <form onSubmit={handleLogin}>
                   <div className="form-group-auth">
@@ -162,6 +167,7 @@ function AuthPage() {
                         required
                       />
                     </div>
+                    {loginMess.email && <span className="error-message">{loginMess.email}</span>}
                   </div>
 
                   <div className="form-group-auth">
@@ -180,6 +186,7 @@ function AuthPage() {
                         required
                       />
                     </div>
+                    {loginMess.password && <span className="error-message">{loginMess.password}</span>}
                   </div>
 
                   <div className="remember-group">

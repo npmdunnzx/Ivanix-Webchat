@@ -1,12 +1,13 @@
 import { useContext } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext.jsx";
+import AuthLoadingScreen from "./AuthLoadingScreen.jsx";
 
 function ProtectedRoute() {
   const { userInfo, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <AuthLoadingScreen />;
   }
 
   if (!userInfo) {

@@ -1,6 +1,6 @@
 import userApi from "../apis/user.apis.js";
 import authApi from "../apis/auth.apis.js";
-import { socket } from "../services/socket.js";
+// import { socket } from "../services/socket.js";
 import {createContext, useState, useEffect} from "react";
 export const AuthContext = createContext();
 
@@ -29,9 +29,9 @@ export const AuthProvider = ({children}) => {
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
-            if (socket.connected) {
-                socket.disconnect();
-            }
+            // if (socket.connected) {
+            //     socket.disconnect();
+            // }
             setUserInfo(null);
         }
     };

@@ -57,22 +57,27 @@ const login = async (userInfo, rememberMe) => {
   } catch (error) {
     response.success = false;
     console.log(error);
-    if (error.response.status === 400) {
-      const errors = error.response.data.errors;
-      errors.forEach((err) => {
-        response.listErr.push({
-          path: err.path,
-          msg: err.msg,
+    if (error.response && error.response.data) {
+      const errorData = error.response.data;
+      if (errorData.errors && Array.isArray(errorData.errors)) {
+        errorData.errors.forEach((err) => {
+          response.listErr.push({
+            path: err.path,
+            msg: err.msg,
+          });
         });
-      });
-    } else if (error.response.status === 401) {
-      const errors = error.response.data.errors;
-      console.log(error.response);
+      } else if (errorData.message) {
+        response.listErr.push({
+          path: "general",
+          msg: errorData.message,
+        });
+      }
+    } else {
       response.listErr.push({
-        path: "auth",
-        msg: "Invalid Credential",
+        path: "general",
+        msg: "Đăng nhập thất bại. Vui lòng thử lại sau.",
       });
-    } else console.error(error);
+    }
   }
   console.log("response", response);
 
