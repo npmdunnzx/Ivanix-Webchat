@@ -11,9 +11,9 @@ router.get("/", checkConversationMember, messController.getMessages);
 router.post("/", checkConversationMember, messController.newMessage);
 router.post(
   "/files",
-//   checkConversationMember,
   upload.array("files", 5),
-  messController.uploadFilesMessage,
+  [checkConversationMember],
+  messController.uploadFilesMessage
 );
 
 export default router;

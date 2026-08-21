@@ -34,6 +34,8 @@ const registerPresenceHandlers = (io, socket) => {
 
       const onlineUserIds = await getOnlineUserIds();
       io.emit("getOnlineUsers", onlineUserIds);
+      
+      socket.join(`user:${userId}`);
 
       console.log(`[Presence] User ${userId} connected (socket ${socketId})`);
     } catch (err) {
@@ -48,7 +50,6 @@ const registerPresenceHandlers = (io, socket) => {
   socket.on("heartbeat", async () => {
     try {
       const now = Date.now();
-
       await redis
         .pipeline()
         .hset(PRESENCE_KEYS.presence(userId), "last_active", now)
@@ -56,6 +57,17 @@ const registerPresenceHandlers = (io, socket) => {
         .exec();
     } catch (err) {
       console.error("[Presence] Heartbeat error:", err);
+    }
+  });
+
+  // Client yêu cầu snapshot danh sách online ngay lập tức (ví dụ khi vừa connect xong).
+  // Chỉ emit về cho chính socket đó, không broadcast.
+  socket.on("presence:sync", async () => {
+    try {
+      const onlineUserIds = await getOnlineUserIds();
+      socket.emit("getOnlineUsers", onlineUserIds);
+    } catch (err) {
+      console.error("[Presence] Sync error:", err);
     }
   });
 

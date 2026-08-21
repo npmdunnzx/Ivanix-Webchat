@@ -2,6 +2,7 @@ import { raw } from "express";
 import utils from "../utils/utils.js";
 import config from "../config/env.config.js";
 import convService from "../services/conversation.service.js";
+import {io} from "../config/server.config.js";
 
 const getAllConversations = async (req, res) => {
   const userId = req.userId;
@@ -31,6 +32,11 @@ const newGroupChat = async (req, res) => {
     res
       .status(201)
       .json({ message: "Group chat created successfully", result });
+    membersId.forEach((memberId) => {
+      io.to(`user:${memberId}`).emit("conversation:new", {
+        conversationId: result.conversationId,
+      });
+    });
   } catch (error) {
     console.error("Could not create group chat:" + error.message);
     res
@@ -40,9 +46,10 @@ const newGroupChat = async (req, res) => {
 };
 
 const addNewMembers = async (req, res) => {
-  const { membersId, conversation_id } = req.body;
+  const { membersId, conversationId } = req.body;
+  // console.log("Adding new members to conversation:", conversation_id, membersId);
   try {
-    const result = await convService.addNewMembers(conversation_id, membersId);
+    const result = await convService.addNewMembers(conversationId, membersId);
     res.status(200).json({ message: "Members added successfully", result });
   } catch (error) {
     console.error("Could not add members:" + error.message);
@@ -84,6 +91,9 @@ const checkExistChat = async (req, res) => {
       res
         .status(201)
         .json({ message: "Private chat created successfully", result });
+      io.to(`user:${partnerId}`).emit("conversation:new", {
+        conversationId: result.conversationId
+      });
     }
   } catch (error) {
     console.error("Could not check chat existence:" + error.message);
@@ -112,10 +122,10 @@ const searchConversation = async (req, res) => {
 };
 
 const getGroupMembers = async (req, res) => {
-  const conversation_id = req.params.conversation_id;
-
+  const conversationId = req.params.conversationId;
+  console.log("Fetching group members for conversationId:", conversationId);
   try {
-    const result = await convService.getGroupMembers(conversation_id);
+    const result = await convService.getGroupMembers(conversationId);
     res.status(200).json({ message: "Get group members successfully", result });
   } catch (error) {
     console.error("Could not get group members:" + error.message);
@@ -126,11 +136,11 @@ const getGroupMembers = async (req, res) => {
 };
 
 const leaveConversation = async (req, res) => {
-  const conversation_id =
-    req.body.conversation_id || req.params.conversation_id;
+  const conversationId =
+    req.body.conversationId || req.params.conversationId;
   const userId = req.userId;
   try {
-    await convService.leaveConversation(conversation_id, userId);
+    await convService.leaveConversation(conversationId, userId);
     res.status(200).json({ message: "Left conversation successfully" });
   } catch (error) {
     if (error.message.includes("only admin")) {
@@ -145,11 +155,11 @@ const leaveConversation = async (req, res) => {
 
 
 const delConversationHistory = async (req, res) => {
-  const conversation_id =
-    req.params.conversation_id || req.body.conversation_id;
+  const conversationId =
+    req.params.conversationId || req.body.conversationId;
   const userId =  req.userId;
   try {
-    await convService.delConversationHistory(conversation_id, userId);
+    await convService.delConversationHistory(conversationId, userId);
     res.status(200).json({ message: "Deleted conversation successfully" });
   } catch (error) {
     console.error("Could not delete conversation: " + error.message);
@@ -160,9 +170,9 @@ const delConversationHistory = async (req, res) => {
 };
 
 const removeGroupMember = async (req, res) => {
-  const { conversation_id, target_user_id } = req.body;
+  const { conversationId, targetUserId } = req.body;
   try {
-    await convService.removeGroupMember(conversation_id, target_user_id);
+    await convService.removeGroupMember(conversationId, targetUserId);
     res.status(200).json({ message: "Member removed from group successfully" });
   } catch (error) {
     console.error("Could not remove group member: " + error.message);
@@ -173,9 +183,9 @@ const removeGroupMember = async (req, res) => {
 };
 
 const renameGroup = async (req, res) => {
-  const { conversation_id, group_name } = req.body;
+  const { conversationId, groupName } = req.body;
   try {
-    const result = await convService.renameGroup(conversation_id, group_name);
+    const result = await convService.renameGroup(conversationId, groupName);
     res.status(200).json({ message: "Group renamed successfully", result });
   } catch (error) {
     console.error("Could not rename group: " + error.message);
@@ -186,10 +196,10 @@ const renameGroup = async (req, res) => {
 };
 
 const transferAdmin = async (req, res) => {
-  const { conversation_id, new_admin_id } = req.body;
+  const { conversationId, newAdminId } = req.body;
   const currentAdminId = req.userId;
   try {
-    await convService.transferAdmin(conversation_id, new_admin_id, currentAdminId);
+    await convService.transferAdmin(conversationId, newAdminId, currentAdminId);
     res.status(200).json({ message: "Admin transferred successfully" });
   } catch (error) {
     if (error.message.includes("not an admin")) {
@@ -203,9 +213,9 @@ const transferAdmin = async (req, res) => {
 };
 
 const deleteGroupConversation = async (req, res) => {
-  const conversation_id = req.params.conversation_id;
+  const conversationId = req.params.conversationId;
   try {
-    await convService.deleteGroupConversation(conversation_id);
+    await convService.deleteGroupConversation(conversationId);
     res.status(200).json({ message: "Group conversation deleted successfully" });
   } catch (error) {
     console.error("Could not delete group conversation: " + error.message);
@@ -216,11 +226,11 @@ const deleteGroupConversation = async (req, res) => {
 };
 
 const getConversationAttachments = async (req, res) => {
-  const conversation_id = req.params.conversation_id;
+  const conversationId = req.params.conversationId;
   const userId = req.userId;
   const type = req.query.type;
   try {
-    const result = await convService.getAttachments(conversation_id, userId, type);
+    const result = await convService.getAttachments(conversationId, userId, type);
     res.status(200).json({ message: "Get conversation attachments successfully", result });
   } catch (error) {
     console.error("Could not get attachments: " + error.message);

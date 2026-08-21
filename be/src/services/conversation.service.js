@@ -13,7 +13,8 @@ const getAllConversations = async (userId) => {
 
             partner.id AS partner_id,
             partner.username AS partner_username,
-            partner.avatar_url AS partner_avatar
+            partner.avatar_url AS partner_avatar,
+            partner.last_seen AS partner_last_seen
 
         FROM conversation_members cm
         JOIN conversations c ON c.id = cm.conversation_id
@@ -146,7 +147,8 @@ const searchConversation = async (userId, keyword) => {
       m.message_type AS last_message_type,
       partner.id AS partner_id,
       partner.username AS partner_username,
-      partner.avatar_url AS partner_avatar
+      partner.avatar_url AS partner_avatar,
+      partner.last_seen AS partner_last_seen
     FROM conversation_members cm
     JOIN conversations c ON c.id = cm.conversation_id
     LEFT JOIN messages m ON m.id = c.last_message_id

@@ -12,11 +12,11 @@ const registerMessageHandlers = (io, socket) => {
             );
             io.to(`conversation:${payload.conversationId}`).emit("message:new", message);
             // console.log(callback);
-            callback?.({success: true, listErr: [], data: message});
+            callback?.({ success: true, listErr: [], data: message });
         } catch (error) {
-            callback?.({success: false, message: error.message});
+            callback?.({ success: false, message: error.message });
         }
     })
 }
 
-export {registerMessageHandlers};
+export { registerMessageHandlers };
