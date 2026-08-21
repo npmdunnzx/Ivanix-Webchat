@@ -32,6 +32,7 @@ const config = {
     port: parseInt(process.env.REDIS_PORT) ?? 6379,
     password: process.env.REDIS_PASSWORD || undefined,
   },
+  DATABASE_URL: process.env.DATABASE_URL,
 };
 
 export default config;

@@ -77,7 +77,7 @@ const newGroupChatRule = () => {
 
 const addMembersRule = () => {
   return [
-    body("conversation_id").isUUID().withMessage("Invalid conversation id"),
+    body("conversationId").isUUID().withMessage("Invalid conversation id"),
     body("membersId")
       .isArray({ min: 1 })
       .withMessage("membersId must be a non-empty array"),

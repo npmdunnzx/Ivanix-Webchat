@@ -1,18 +1,33 @@
 import { Pool } from "pg";
 import config from "./env.config.js";
 
-const pool = new Pool({
-  host: config.DB.host,
-  port: config.DB.port,
-  user: config.DB.username,
-  password: config.DB.password,
-  database: config.DB.database,
-});
+const getPoolConfig = () => {
+  if (config.STORAGE === "online") {
+    console.log("Online database");
+    return {
+      connectionString: config.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    };
+  }
+
+  // local
+  return {
+    host: config.DB.host,
+    port: config.DB.port,
+    user: config.DB.username,
+    password: config.DB.password,
+    database: config.DB.database,
+  };
+};
+
+const pool = new Pool(getPoolConfig());
 
 const connect = async () => {
   try {
     await pool.connect();
-    console.log("Connected to the database successfully.");
+    console.log(
+      "Connected to the database successfully. Type: " + config.STORAGE_TYPE,
+    );
   } catch (error) {
     console.error("Error connecting to the database:", error);
     throw error;

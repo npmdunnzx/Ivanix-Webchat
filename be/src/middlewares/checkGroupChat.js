@@ -2,11 +2,12 @@ import db from "../config/db.config.js";
 
 const checkGroupAdmin = async (req, res, next) => {
   const conversationId =
-    req.body?.conversation_id ||
+    req.body?.conversationId ||
     req.query?.conversationId ||
-    req.query?.conversation_id ||
-    req.params?.conversation_id;
+    req.query?.conversationId ||
+    req.params?.conversationId;
   const userId = req.userId;
+  // console.log("Checking group admin for userId:", userId, "conversationId:", req);
   const query = `
     SELECT role FROM conversation_members
     WHERE conversation_id = $1 AND user_id = $2`;
@@ -32,16 +33,16 @@ const checkGroupAdmin = async (req, res, next) => {
 };
 
 const checkConversationMember = async (req, res, next) => {
-  const conversation_id =
-    req.body?.conversation_id ||
+  const conversationId =
+    req.body?.conversationId ||
     req.query?.conversationId ||
-    req.query?.conversation_id ||
-    req.params?.conversation_id;
+    req.params?.conversationId;
   const userId = req.userId;
+  // console.log("Checking conversation member for userId:", userId, "conversationId:", conversationId);
   try {
     const { rows } = await db.query(
       "SELECT 1 FROM conversation_members WHERE conversation_id = $1 AND user_id = $2",
-      [conversation_id, userId],
+      [conversationId, userId],
     );
     if (rows.length === 0) {
       return res
@@ -63,9 +64,9 @@ const checkConversationMember = async (req, res, next) => {
 const GROUP_MEMBER_LIMIT = 50;
 
 const checkGroupMemberLimit = async (req, res, next) => {
-  const conversation_id =
-    req.body?.conversation_id ||
-    req.params?.conversation_id;
+  const conversationId =
+    req.body?.conversationId ||
+    req.params?.conversationId;
 
   const newMembersId = req.body?.membersId || [];
   const newCount = Array.isArray(newMembersId) ? newMembersId.length : 0;
@@ -73,7 +74,7 @@ const checkGroupMemberLimit = async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT COUNT(*) AS count FROM conversation_members WHERE conversation_id = $1`,
-      [conversation_id]
+      [conversationId]
     );
     const currentCount = parseInt(rows[0].count);
 
