@@ -1,435 +1,449 @@
-# Web Chat Realtime
+# Ivanix — Web Chat Realtime
 
-Web Chat Realtime is a full-stack chat application built with React, Express, Socket.IO, and PostgreSQL. The current backend focuses on authentication, user profile/search, and realtime online-user presence.
+Ivanix là ứng dụng chat realtime full-stack hỗ trợ nhắn tin cá nhân và nhóm, gửi file/ảnh, theo dõi trạng thái online, kết bạn, và gợi ý kết bạn thông minh dựa trên mạng lưới quan hệ xã hội.
 
-## Current Backend Scope
+---
 
-Implemented in the backend now:
+## Mục lục
 
-- Authentication: signup, login
-- User profile: get current profile
-- User search
-- Socket.IO connection with cookie-based JWT authentication
-- Realtime online-user tracking
+- [Tech Stack](#tech-stack)
+- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Luồng dữ liệu chính](#luồng-dữ-liệu-chính)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Cài đặt & Chạy dự án](#cài-đặt--chạy-dự-án)
+- [Biến môi trường](#biến-môi-trường)
+- [Database Schema](#database-schema)
+- [API Overview](#api-overview)
+- [Socket.IO Events](#socketio-events)
 
-Planned in the SRS but not yet implemented in the backend:
+---
 
-- Conversations
-- Messages
-- Upload image/file
-- Typing indicator
-- Seen message
-- Notifications
-- Sidebar conversation ranking and unread count persistence
+## Tech Stack
 
-## Base URLs
+| Layer | Công nghệ |
+|---|---|
+| **Frontend** | React 19, React Router v6, Vite 8 |
+| **Styling** | Vanilla CSS, Bootstrap Icons, Lucide React |
+| **HTTP Client** | Axios (withCredentials) |
+| **Realtime Client** | Socket.IO Client v4 |
+| **Backend** | Node.js, Express 4 |
+| **Realtime Server** | Socket.IO v4 |
+| **Authentication** | JWT lưu trong httpOnly Cookie |
+| **Database** | PostgreSQL (với pg_trgm để tìm kiếm) |
+| **Cache / Presence** | Redis (ioredis) |
+| **File Storage** | Cloudinary |
+| **File Upload** | Multer |
+| **Validation** | express-validator |
+| **Scheduler** | node-cron |
+| **Password Hashing** | bcryptjs |
 
-- Backend API: `http://localhost:4000/api`
-- Socket.IO server: `http://localhost:4000`
+---
 
-## Authentication
+## Kiến trúc hệ thống
 
-Authentication uses an httpOnly cookie named `jwt`.
-The frontend should send requests with credentials enabled.
-
-### `POST /api/auth/signup`
-
-Create a new user account.
-
-Request body:
-
-```json
-{
-  "username": "manhdung",
-  "email": "manh@example.com",
-  "password": "Password123"
-}
+```
+┌─────────────────────────────────┐
+│         React (Frontend)        │
+│  React Router / Context / Axios │
+└────────────┬──────────┬─────────┘
+             │ REST     │ Socket.IO
+             ▼          ▼
+┌─────────────────────────────────┐
+│      Express + Socket.IO        │
+│   (Node.js — port 4000)         │
+│                                 │
+│  ┌──────────┐  ┌─────────────┐  │
+│  │  Routes  │  │   Sockets   │  │
+│  └────┬─────┘  └──────┬──────┘  │
+│       │               │         │
+│  ┌────▼───────────────▼──────┐  │
+│  │     Services / Business   │  │
+│  └───────┬───────────────────┘  │
+└──────────┼──────────────────────┘
+           │
+    ┌──────┴──────┐
+    │             │
+    ▼             ▼
+┌────────┐  ┌──────────┐
+│Postgres│  │  Redis   │
+│  (DB)  │  │(Cache/   │
+│        │  │Presence) │
+└────────┘  └──────────┘
+                │
+                ▼
+         ┌───────────┐
+         │ Cloudinary│
+         │(File/Img) │
+         └───────────┘
 ```
 
-Response:
+---
 
-```json
-{
-  "message": "User created successfully",
-  "user": {
-    "id": "...",
-    "username": "manhdung",
-    "email": "manh@example.com"
-  }
-}
+## Luồng dữ liệu chính
+
+### Luồng xác thực (Auth Flow)
+
+```
+Client  →  POST /api/auth/login
+        ←  Set-Cookie: jwt (httpOnly)
+        ←  { user: { id, username, email, avatar_url } }
+
+Mọi request REST sau đó:
+  Client  →  API (Cookie jwt tự gửi kèm)
+          →  protectRoute middleware xác thực JWT
+          →  giải mã → gán req.userId, req.email
+
+Socket.IO connect:
+  Client  →  io.connect (withCredentials: true)
+          →  socketAuth middleware xác thực JWT từ cookie
+          →  gán socket.userId
 ```
 
-Notes:
+### Luồng gửi tin nhắn (Message Flow)
 
-- Backend sets the `jwt` cookie on success.
-- The cookie is `httpOnly`.
+```
+Option A — REST:
+  Client  →  POST /api/messages  { conversationId, content, messageType, clientOffset }
+          ←  { message: "sent", data: { message object } }
 
-### `POST /api/auth/login`
-
-Login with email and password.
-
-Request body:
-
-```json
-{
-  "email": "manh@example.com",
-  "password": "Password123",
-  "rememberMe": false
-}
+Option B — Socket.IO (realtime):
+  Client  →  emit("message:send", { clientOffset, conversationId, content })
+  Server  →  lưu DB, emit("message:new", message) → toàn bộ room conversation
+  Client  ←  nhận "message:new", hiển thị lên giao diện
 ```
 
-Response:
+### Luồng upload file
 
-```json
-{
-  "message": "Login successfully",
-  "user": {
-    "id": "...",
-    "username": "manhdung",
-    "email": "manh@example.com"
-  }
-}
+```
+Client  →  POST /api/messages/files (multipart/form-data, tối đa 5 file)
+           { conversationId, clientOffset, files[] }
+Server  →  Multer đọc file → Cloudinary upload → lưu message_attachments DB
+        →  io.emit("message:new", message) → room conversation
+Client  ←  nhận "message:new", render FileAttachment component
 ```
 
-Notes:
+### Luồng Presence (Online/Offline)
 
-- Backend sets the `jwt` cookie on success.
-- `rememberMe` extends the cookie lifetime.
+```
+Socket connect:
+  → Redis: SADD user:connections:{userId} socketId
+           HSET user:presence:{userId} { status: "online", last_active: now }
+           ZADD presence:online_users now userId
+  → io.emit("getOnlineUsers", [...userIds])
 
-### `POST /api/auth/logout`
+Heartbeat (client gửi mỗi 25s):
+  → Redis: HSET last_active, ZADD score mới (keep alive)
 
-Logout is implemented in the controller, but the route is not mounted in the current server config.
+Socket disconnect:
+  → Redis: SREM socketId
+  → Nếu không còn tab nào → đánh dấu offline, xóa khỏi sorted set
+  → UPDATE users SET last_seen = NOW() (Postgres)
+  → io.emit("getOnlineUsers", [...userIds])
 
-## Users
-
-### `GET /api/user/me`
-
-Get the currently authenticated user profile.
-
-Protected by cookie-based JWT auth.
-
-Response:
-
-```json
-{
-  "id": "...",
-  "username": "manhdung",
-  "email": "manh@example.com",
-  "avatar_url": "..."
-}
+PresenceWorker (chạy mỗi 30s):
+  → Dọn zombie user (heartbeat quá hạn 45s)
+  → Đồng bộ last_seen về Postgres hàng loạt
 ```
 
-### `GET /api/user/search?id=user_id&keyword=manh`
+### Luồng gợi ý kết bạn (Recommendation Flow)
 
-Search users by keyword.
+```
+RecommendationWorker (node-cron, mỗi 2 giờ + chạy lúc server khởi động):
+  → Query Postgres: mutual friends, mutual groups, recent interactions (30 ngày)
+  → Tính static score (log-weighted formula)
+  → Loại bỏ bạn bè hiện có và pending requests
+  → Lưu Top 100 candidate features vào Redis Hash (TTL 24h)
 
-Query params:
-
-- `id`: the current user's id
-- `keyword`: search keyword
-
-Response:
-
-```json
-[
-  {
-    "id": "...",
-    "username": "manhdung",
-    "avatar_url": "..."
-  }
-]
+GET /api/recommendations:
+  → Đọc features từ Redis
+  → Cộng online boost (pipeline Redis)
+  → Batch query profile từ Postgres
+  → Sort, trả Top 10
+  → Fallback (Redis trống): user mới nhất từ Postgres
 ```
 
-## Socket.IO
+---
 
-Socket authentication also uses the `jwt` cookie.
-The frontend should connect with credentials enabled.
+## Cấu trúc thư mục
 
-Events currently emitted by the backend:
+```
+Webchat/
+├── README.md
+├── be/                           # Backend (Node.js + Express)
+│   ├── .env
+│   ├── chat.sql                  # Database schema
+│   ├── package.json
+│   ├── server.js                 # Entry point
+│   └── src/
+│       ├── config/
+│       │   ├── cloudinary.config.js
+│       │   ├── db.config.js
+│       │   ├── env.config.js
+│       │   ├── multer.config.js
+│       │   ├── redis.config.js
+│       │   └── server.config.js  # Express app, Socket.IO, CORS, route mounting
+│       ├── controller/           # HTTP request handlers
+│       │   ├── auth.controller.js
+│       │   ├── conversation.controller.js
+│       │   ├── friend.controller.js
+│       │   ├── message.controller.js
+│       │   ├── recommendation.controller.js
+│       │   └── user.controller.js
+│       ├── middlewares/
+│       │   ├── checkGroupChat.js      # checkGroupAdmin, checkConversationMember, checkGroupMemberLimit
+│       │   ├── protectRoute.js        # JWT cookie auth cho REST
+│       │   ├── socketAuth.js          # JWT cookie auth cho Socket.IO
+│       │   ├── validate.js            # express-validator rules
+│       │   ├── verifyResetPassword.js
+│       │   └── verifySignup.js        # checkExistEmail, checkExistUsername
+│       ├── routes/
+│       │   ├── auth.routes.js
+│       │   ├── conversation.routes.js
+│       │   ├── friend.routes.js
+│       │   ├── message.routes.js
+│       │   ├── recommendation.routes.js
+│       │   └── user.routes.js
+│       ├── services/             # Business logic / DB queries
+│       │   ├── auth.service.js
+│       │   ├── conversation.service.js
+│       │   ├── friend.service.js
+│       │   ├── message.service.js
+│       │   ├── recommendation.service.js
+│       │   ├── upload.service.js
+│       │   └── user.service.js
+│       ├── sockets/              # Socket.IO event handlers
+│       │   ├── index.js
+│       │   ├── conversation.socket.js
+│       │   ├── message.socket.js
+│       │   └── presence.socket.js
+│       └── utils/
+│           ├── presenceWorker.js      # Dọn zombie connections mỗi 30s
+│           ├── recommendationWorker.js # Cron tính recommendation mỗi 2h
+│           └── utils.js
+│
+├── fe/                           # Frontend (React + Vite)
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx               # Router chính
+│       ├── main.jsx
+│       ├── apis/                 # Axios API call functions
+│       │   ├── axiosClient.js    # Instance Axios withCredentials
+│       │   ├── auth.apis.js
+│       │   ├── conversation.apis.js
+│       │   ├── friend.apis.js
+│       │   ├── message.apis.js
+│       │   ├── recommendation.apis.js
+│       │   └── user.apis.js
+│       ├── assets/
+│       │   ├── images/
+│       │   └── styles/           # Vanilla CSS per-page/component
+│       ├── components/
+│       │   ├── AddMemberModal.jsx
+│       │   ├── AuthLoadingScreen.jsx
+│       │   ├── ChatInfo.jsx
+│       │   ├── ConfirmModal.jsx
+│       │   ├── CreateGroupModal.jsx
+│       │   ├── FileAttachment.jsx
+│       │   ├── LayoutPage.jsx
+│       │   ├── MessageAttachments.jsx
+│       │   ├── NewContactInfo.jsx
+│       │   ├── ProtectedRoute.jsx
+│       │   ├── RenameGroupModal.jsx
+│       │   ├── Sidebar.jsx
+│       │   └── UserInfo.jsx
+│       ├── context/
+│       │   ├── AuthContext.jsx   # User auth state, login/logout
+│       │   └── SocketContext.jsx # Socket.IO instance, online users
+│       ├── pages/
+│       │   ├── AuthPage.jsx      # Login / Signup
+│       │   ├── Chat.jsx          # Trang chat chính
+│       │   ├── Contacts.jsx      # Danh bạ, kết bạn, gợi ý
+│       │   ├── Notification.jsx  # Thông báo
+│       │   └── Settings.jsx      # Cài đặt tài khoản
+│       ├── services/             # Business logic FE (wrap API calls)
+│       └── utils/
+│           └── toast.js
+│
+└── docs/
+    ├── API_DOC.md
+    ├── SRS_Webchat_realtime.md
+    ├── BACKLOG.md
+    ├── swagger.yaml
+    └── UI_DESIGN_GUIDELINE.md
+```
 
-- `getOnlineUsers`
+---
 
-Behavior:
+## Cài đặt & Chạy dự án
 
-- On connect, the backend adds the user to the in-memory online-user map.
-- On disconnect, the backend removes the socket from the map.
-- The server broadcasts the current online user list through `getOnlineUsers`.
+### Yêu cầu
 
-Example client setup:
+- Node.js >= 18
+- PostgreSQL >= 14
+- Redis (khuyên dùng Docker)
+- Tài khoản Cloudinary
+
+### 1. Khởi động Redis (Docker)
+
+```bash
+# Lần đầu — tải và chạy container Redis
+docker run -d --name redis -p 6379:6379 redis
+
+# Các lần sau — chỉ cần start
+docker start redis
+
+# Dừng khi không dùng
+docker stop redis
+```
+
+### 2. Tạo Database
+
+```bash
+psql -U postgres -c "CREATE DATABASE webchat;"
+psql -U postgres -d webchat -f be/chat.sql
+```
+
+### 3. Cấu hình biến môi trường
+
+Tạo file `be/.env` — xem mục [Biến môi trường](#biến-môi-trường).
+
+### 4. Chạy Backend
+
+```bash
+cd be
+npm install
+nodemon server.js
+# Server chạy tại http://localhost:4000
+```
+
+### 5. Chạy Frontend
+
+```bash
+cd fe
+npm install
+npm run dev
+# App chạy tại http://localhost:5173
+```
+
+---
+
+## Biến môi trường
+
+Tạo file `be/.env`:
+
+```env
+# Server
+PORT=4000
+CLIENT_URL=http://localhost:5173
+
+# Database
+DATABASE_URL=postgresql://postgres:password@localhost:5432/webchat
+
+# JWT
+JWT_SECRET=your_jwt_secret_key
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+---
+
+## Database Schema
+
+Schema đầy đủ tại [`be/chat.sql`](be/chat.sql).
+
+| Bảng | Mô tả |
+|---|---|
+| `users` | Tài khoản người dùng (uuid, username, email, password_hash, avatar_url, last_seen) |
+| `conversations` | Hội thoại private / group (participant_key để đảm bảo unique private chat) |
+| `conversation_members` | Thành viên hội thoại (role: admin/member, unread_count, cleared_history_at) |
+| `messages` | Tin nhắn (server_offset cho Socket.IO recovery, client_offset chống duplicate) |
+| `message_attachments` | File/ảnh đính kèm (Cloudinary URL, mime_type, file_size, display_order) |
+| `message_seen` | Trạng thái đã đọc (composite PK: message_id + user_id) |
+| `friend_requests` | Lời mời kết bạn (status: pending/accepted/rejected) |
+| `friendships` | Quan hệ bạn bè (user_id1 < user_id2 — normalized unique constraint) |
+
+---
+
+## API Overview
+
+Base URL: `http://localhost:4000/api`
+
+Authentication: Cookie `jwt` (httpOnly). Frontend dùng `withCredentials: true`.
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| POST | `/auth/signup` | Đăng ký tài khoản |
+| POST | `/auth/login` | Đăng nhập |
+| POST | `/auth/logout` | Đăng xuất |
+| GET | `/user/me` | Lấy profile hiện tại |
+| GET | `/user/search?keyword=` | Tìm kiếm người dùng |
+| PUT | `/user/profile` | Cập nhật profile / avatar |
+| GET | `/conversations` | Lấy danh sách hội thoại |
+| POST | `/conversations/private` | Tạo hoặc lấy private chat |
+| POST | `/conversations/groups` | Tạo group chat |
+| POST | `/conversations/groups/members` | Thêm thành viên vào group |
+| GET | `/conversations/groups/:id/members` | Lấy danh sách thành viên group |
+| GET | `/conversations/search?name=` | Tìm kiếm conversation |
+| POST | `/conversations/leave` | Rời khỏi conversation |
+| POST | `/conversations/:id/history` | Xóa lịch sử chat phía mình |
+| POST | `/conversations/groups/members/remove` | Xóa thành viên (admin only) |
+| PUT | `/conversations/groups/name` | Đổi tên group |
+| PUT | `/conversations/groups/admin` | Chuyển quyền admin |
+| DELETE | `/conversations/groups/:id` | Giải tán group (admin only) |
+| GET | `/conversations/:id/attachments` | Lấy file/ảnh trong hội thoại |
+| GET | `/messages?conversationId=` | Lấy tin nhắn |
+| POST | `/messages` | Gửi tin nhắn text |
+| POST | `/messages/files` | Upload và gửi file/ảnh |
+| POST | `/friends/send-request` | Gửi lời mời kết bạn |
+| POST | `/friends/response-request` | Chấp nhận / từ chối lời mời |
+| POST | `/friends/cancel-request` | Hủy lời mời đã gửi |
+| GET | `/friends` | Lấy danh sách bạn bè |
+| GET | `/friends/pending-requests` | Lấy lời mời nhận được |
+| GET | `/friends/my-requests` | Lấy lời mời đã gửi |
+| DELETE | `/friends/delete-friend` | Xóa bạn bè (unfriend) |
+| GET | `/recommendations` | Gợi ý kết bạn (Top 10) |
+
+Chi tiết đầy đủ xem tại [`docs/API_DOC.md`](docs/API_DOC.md).
+
+---
+
+## Socket.IO Events
+
+Server URL: `http://localhost:4000`
 
 ```js
 import { io } from "socket.io-client";
-
-const socket = io("http://localhost:4000", {
-  withCredentials: true,
-});
+const socket = io("http://localhost:4000", { withCredentials: true });
 ```
 
-## Database
+| Event | Hướng | Mô tả |
+|---|---|---|
+| `getOnlineUsers` | Server → Client | Broadcast danh sách userId đang online |
+| `heartbeat` | Client → Server | Client ping giữ kết nối (gửi mỗi 25s) |
+| `presence:sync` | Client → Server | Client yêu cầu snapshot danh sách online ngay lập tức |
+| `conversation:join` | Client → Server | Tham gia room conversation |
+| `conversation:leave` | Client → Server | Rời room conversation |
+| `conversation:new` | Server → Client | Server push khi user được thêm vào conversation mới |
+| `message:send` | Client → Server | Gửi tin nhắn realtime |
+| `message:new` | Server → Client | Server push tin nhắn mới vào room |
 
-The current schema includes:
+---
 
-- `users`
-- `conversations`
-- `conversation_members`
-- `messages`
-- `message_seen`
+## Routes Frontend
 
-The schema is defined in [`be/chat.sql`](be/chat.sql).
-
-## SRS Alignment
-
-The detailed requirements document is in [`SRS_Webchat_realtime.txt`](SRS_Webchat_realtime.txt).
-It contains:
-
-- implemented backend scope
-- planned chat features
-- database design
-- Socket.IO design
-- security notes
-- UI/UX guidance
-
-## Frontend Integration Notes
-
-Use `withCredentials: true` in Axios so the browser sends the httpOnly cookie automatically.
-
-Example:
-
-```js
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:4000/api",
-  withCredentials: true,
-});
-```
-## chat
-
-### `GET /api/conversations`
-
-Query params:
-
-- `userId`
-
-Response:
-
-``` json 
-{
-  "id": "...",
-  "type": "private",
-  "name": null,
-  "last_message_at": "...",
-  "last_message_sender_id": "...",
-  "last_message_id": "...",
-  "unread_count": 3,
-  "last_message_content": "hello",
-  "last_message_type": "text",
-  "partner_id": "...",
-  "partner_username": "manh",
-  "partner_avatar": "..."
-}
-```
-
-
-### `POST /api/conversations/start`
-
-
-
-- `POST /api/conversations/group`
-- `GET /api/messages/:conversationId`
-- `POST /api/messages`
-- `DELETE /api/messages/:id`
-- `POST /api/upload/image`
-- `POST /api/upload/file`
-
-## Summary
-
-Current project status:
-
-- Auth is cookie-based with JWT.
-- User profile and search are implemented.
-- Realtime online-user tracking is implemented.
-- Conversation/message/upload features are documented in the SRS and can be added next.
-
-
-## 🛠️ Setup Redis (Dành riêng cho Git Bash trên Windows)
-
-Chạy các khối lệnh dưới đây trực tiếp vào Terminal Git Bash của bạn để quản lý Redis thông qua Docker.
-
-### 1. Khởi tạo và chạy lần đầu tiên
-
-```bash
-# Khởi động dịch vụ Docker Engine chạy ẩn dưới nền (Không mở UI)
-# cmd.exe /c "start /B "" "C:\Program Files\Docker\Docker\Docker Desktop.exe""
-
-# (Đợi khoảng 5-10 giây cho Docker khởi động) rồi tải và chạy container Redis
-docker run -d --name redis -p 6379:6379 redis
-
-# Kiểm tra lại xem container "redis" đã chạy thành công chưa
-docker ps
-
-# Bật nhanh Redis để bắt đầu code (Nếu Docker Engine chưa chạy, chạy lại lệnh khởi động ở mục 1 trước)
-docker start redis
-
-# Tắt Redis khi đã code xong để giải phóng RAM cho máy
-docker stop redis
-
-# Xem danh sách các container đang hoạt động
-docker ps
-
-1. Xem các socket đang mở của bạn (Kiểu Set)
-Gõ lệnh sau để xem danh sách các ID socket ứng với các tab bạn đang mở:
-
-Bash
-smembers "user:connections:5e21449a-8dc1-41e5-a08d-6f63e4f2a42d"
-2. Xem chi tiết trạng thái Online (Kiểu Hash)
-Gõ lệnh này để in ra các cặp trường lẻ-chẵn (status và last_active) như bạn vừa nhận xạ lúc nãy:
-
-Bash
-hgetall "user:presence:5e21449a-8dc1-41e5-a08d-6f63e4f2a42d"
-3. Xem danh sách tổng hợp những người online (Kiểu Sorted Set)
-Gõ lệnh này để xem tất cả userId đang online kèm theo điểm số timestamp hoạt động mới nhất của họ:
-
-Bash
-zrange "presence:online_users" 0 -1 withedscores
-(Nếu bản Redis cũ báo lỗi chữ withedscores, bạn chỉ cần đổi thành withscores là được).
-```
-
-```
-Webchat
-├─ be
-│  ├─ .env
-│  ├─ chat.sql
-│  ├─ package-lock.json
-│  ├─ package.json
-│  ├─ server.js
-│  └─ src
-│     ├─ config
-│     │  ├─ cloudinary.config.js
-│     │  ├─ db.config.js
-│     │  ├─ env.config.js
-│     │  ├─ multer.config.js
-│     │  ├─ redis.config.js
-│     │  └─ server.config.js
-│     ├─ controller
-│     │  ├─ auth.controller.js
-│     │  ├─ conversation.controller.js
-│     │  ├─ friend.controller.js
-│     │  ├─ message.controller.js
-│     │  ├─ recommendation.controller.js
-│     │  └─ user.controller.js
-│     ├─ middlewares
-│     │  ├─ checkGroupChat.js
-│     │  ├─ protectRoute.js
-│     │  ├─ socketAuth.js
-│     │  ├─ validate.js
-│     │  ├─ verifyResetPassword.js
-│     │  └─ verifySignup.js
-│     ├─ routes
-│     │  ├─ auth.routes.js
-│     │  ├─ conversation.routes.js
-│     │  ├─ friend.routes.js
-│     │  ├─ message.routes.js
-│     │  ├─ recommendation.routes.js
-│     │  └─ user.routes.js
-│     ├─ services
-│     │  ├─ auth.service.js
-│     │  ├─ conversation.service.js
-│     │  ├─ friend.service.js
-│     │  ├─ message.service.js
-│     │  ├─ recommendation.service.js
-│     │  ├─ upload.service.js
-│     │  └─ user.service.js
-│     ├─ sockets
-│     │  ├─ conversation.socket.js
-│     │  ├─ index.js
-│     │  ├─ message.socket.js
-│     │  └─ presence.socket.js
-│     └─ utils
-│        ├─ presenceWorker.js
-│        ├─ recommendationWorker.js
-│        └─ utils.js
-├─ docs
-│  ├─ API_DOC.md
-│  ├─ SRS_Webchat_realtime.md
-│  ├─ swagger.yaml
-│  └─ UI_DESIGN_GUIDELINE.md
-├─ fe
-│  ├─ dist
-│  │  ├─ assets
-│  │  │  ├─ auth-B-v2zKgs.png
-│  │  │  ├─ index-CReeSdRB.css
-│  │  │  ├─ index-DAFkdDIy.js
-│  │  │  ├─ logoauth-fBtg_yNQ.png
-│  │  │  └─ user_avatar-Bzrj67bo.png
-│  │  └─ public
-│  │     └─ index.html
-│  ├─ eslint.config.js
-│  ├─ package-lock.json
-│  ├─ package.json
-│  ├─ public
-│  │  └─ index.html
-│  ├─ src
-│  │  ├─ apis
-│  │  │  ├─ auth.apis.js
-│  │  │  ├─ axiosClient.js
-│  │  │  ├─ conversation.apis.js
-│  │  │  ├─ friend.apis.js
-│  │  │  ├─ message.apis.js
-│  │  │  ├─ recommendation.apis.js
-│  │  │  └─ user.apis.js
-│  │  ├─ App.jsx
-│  │  ├─ assets
-│  │  │  ├─ images
-│  │  │  │  ├─ auth.png
-│  │  │  │  ├─ logoauth.png
-│  │  │  │  └─ user_avatar.png
-│  │  │  └─ styles
-│  │  │     ├─ auth.css
-│  │  │     ├─ chat.css
-│  │  │     ├─ chatinfo.css
-│  │  │     ├─ ConfirmModal.css
-│  │  │     ├─ contacts.css
-│  │  │     ├─ CreateGroupModal.css
-│  │  │     ├─ fileattachment.css
-│  │  │     ├─ layout.css
-│  │  │     ├─ NewContactInfo.css
-│  │  │     ├─ settings.css
-│  │  │     ├─ sidebar.css
-│  │  │     ├─ storage.css
-│  │  │     └─ userinfo.css
-│  │  ├─ components
-│  │  │  ├─ AddMemberModal.jsx
-│  │  │  ├─ ChatInfo.jsx
-│  │  │  ├─ ConfirmModal.jsx
-│  │  │  ├─ CreateGroupModal.jsx
-│  │  │  ├─ FileAttachment.jsx
-│  │  │  ├─ LayoutPage.jsx
-│  │  │  ├─ NewContactInfo.jsx
-│  │  │  ├─ RenameGroupModal.jsx
-│  │  │  ├─ Sidebar.jsx
-│  │  │  └─ UserInfo.jsx
-│  │  ├─ context
-│  │  │  ├─ AuthContext.jsx
-│  │  │  └─ SocketContext.jsx
-│  │  ├─ main.jsx
-│  │  ├─ pages
-│  │  │  ├─ AuthPage.jsx
-│  │  │  ├─ Chat.jsx
-│  │  │  ├─ Contacts.jsx
-│  │  │  ├─ Settings.jsx
-│  │  │  └─ Storage.jsx
-│  │  ├─ services
-│  │  │  ├─ auth.service.js
-│  │  │  ├─ conversation.service.js
-│  │  │  ├─ friend.service.js
-│  │  │  ├─ message.service.js
-│  │  │  ├─ recommendation.service.js
-│  │  │  ├─ socket.js
-│  │  │  └─ user.service.js
-│  │  └─ utils
-│  │     └─ toast.js
-│  └─ vite.config.js
-└─ README.md
-
-```
+| Path | Page | Mô tả |
+|---|---|---|
+| `/login` | AuthPage | Đăng nhập |
+| `/signup` | AuthPage | Đăng ký |
+| `/chat` | Chat | Trang chat (chưa chọn conversation) |
+| `/chat/:type/:conversationId` | Chat | Trang chat đang mở conversation |
+| `/contacts` | Contacts | Quản lý kết bạn, gợi ý bạn bè |
+| `/settings` | Settings | Cài đặt tài khoản, đổi avatar |
+| `/notifications` | Notification | Thông báo |
