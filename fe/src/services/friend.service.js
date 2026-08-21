@@ -110,11 +110,30 @@ const getFriends = async () => {
     return response;
 }
 
+const deleteFriend = async (friendId) => {
+    const response = {
+        success: true,
+        listErr: [],
+        data: null,
+    }
+    try {
+        const data = await friendApis.deleteFriend(friendId);
+        response.data = data;
+    } catch (error) {
+        response.success = false;
+        if (error.response && error.response.status === 500) {
+            response.listErr.push({ path: "friend", msg: "Could not delete friend" });
+        }
+    }
+    return response;
+}
+
 export default {
     sendRequest,
     responseRequest,
     cancelRequest,
     getPendingRequests,
     getMyRequests,
-    getFriends
+    getFriends,
+    deleteFriend
 }

@@ -30,10 +30,16 @@ const getMyRequests = async () => {
     return response.data;
 }
 
+const deleteFriend = async (friendId) => {
+    const response = await axiosClient.delete("/friends/delete-friend", { data: { friendId } });
+    return response.data;
+}
+
 export default {
     sendRequest,
     responseRequest,
     cancelRequest,
+    deleteFriend,
     getMyRequests,
     getPendingRequests,
     getFriends

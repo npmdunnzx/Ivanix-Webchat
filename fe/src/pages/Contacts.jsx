@@ -7,7 +7,7 @@ import {
   UserPlus,
   X,
   Clock,
-  MoreHorizontal
+  Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "../assets/styles/contacts.css";
@@ -16,10 +16,12 @@ import recommendationService from "../apis/recommendation.apis.js";
 import friendService from "../services/friend.service.js";
 import userService from "../services/user.service.js";
 import { AuthContext } from "../context/AuthContext.jsx";
+import {SocketContext} from "../context/SocketContext.jsx";
 import debounce from "lodash.debounce";
 import convService from "../services/conversation.service.js";
 import NewContactInfo from "../components/NewContactInfo.jsx";
 import {useNavigate} from "react-router-dom";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 
 const TABS = {
   FRIENDS: 'friends',
@@ -31,18 +33,27 @@ const TABS = {
 export default function Contacts() {
   const navigate = useNavigate();
   const { userInfo } = useContext(AuthContext);
+  const { onlineUsers, isUserOnline } = useContext(SocketContext);
   const [friends, setFriends] = useState([]);
+
   const latestSearchId = useRef(0);
   const searchRef = useRef(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
+
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+
   const [recommendations, setRecommendations] = useState([]);
+
   const [activeTab, setActiveTab] = useState(TABS.FRIENDS);
   const [activeFilter, setActiveFilter] = useState("all");
+
   const [myRequests, setMyRequests] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+
+  const [memberToDelete, setMemberToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -137,6 +148,28 @@ export default function Contacts() {
     }
   }
 
+  const handleDeleteFriend = async () => {
+    if (!memberToDelete) return;
+    try {
+      await friendService.deleteFriend(memberToDelete.id);
+      setIsDeleteModalOpen(false);
+      setMemberToDelete(null);
+      bumpRefresh();
+    } catch (error) {
+      console.error("Error deleting friend:", error);
+    }
+  };
+
+  const openDeleteModal = (friend) => {
+    setMemberToDelete(friend);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setMemberToDelete(null);
+  };
+
   return (
     <div className="contacts-page">
       <div className="contacts-inner">
@@ -182,8 +215,6 @@ export default function Contacts() {
                 </div>
                 <div className="contacts-filter-pills">
                   <button className={`filter-pill ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')}>Tất cả</button>
-                  <button className={`filter-pill ${activeFilter === 'recent' ? 'active' : ''}`} onClick={() => setActiveFilter('recent')}>Gần đây</button>
-                  <button className={`filter-pill ${activeFilter === 'favorite' ? 'active' : ''}`} onClick={() => setActiveFilter('favorite')}>Yêu thích</button>
                 </div>
               </div>
 
@@ -214,7 +245,7 @@ export default function Contacts() {
                               referrerPolicy="no-referrer"
                             />
                             <span
-                              className={`contacts-status-dot online`}
+                              className={`contacts-status-dot ${isUserOnline(friend.id) ? 'online' : 'offline'}`}
                             />
                           </div>
                           <div className="contacts-card-info">
@@ -226,11 +257,11 @@ export default function Contacts() {
 
                         <div className="contacts-card-footer">
                           <button className="contacts-action-primary" onClick={() => handleStartChat(friend)}>
-                            <MessageSquare size={13} />
+                            <MessageSquare size={18} />
                             Nhắn tin
                           </button>
-                          <button className="contacts-action-more">
-                            <MoreHorizontal size={14} />
+                          <button className="btn btn-outline-danger" onClick={() => openDeleteModal(friend)}>
+                            <Trash2 size={18}/>
                           </button>
                         </div>
                       </motion.div>
@@ -345,6 +376,16 @@ export default function Contacts() {
           )}
         </div>
       </div>
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteFriend}
+        title="Xác nhận xóa bạn bè"
+        message={`Bạn có chắc chắn muốn xóa ${memberToDelete?.username} khỏi danh sách bạn bè?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        isDanger={true}
+      />
     </div>
   );
 }
