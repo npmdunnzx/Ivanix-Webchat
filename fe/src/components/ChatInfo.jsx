@@ -342,7 +342,7 @@ function ChatInfo(props) {
         <div className="member-info info-1">
           <div className="member-header">
             <p>
-              <Info /> Thành viên ({members?.length || 0})
+              <Info size={20} /> Thành viên ({members?.length || 0})
             </p>
             <button
               onClick={() => setIsMembersOpen(!isMembersOpen)}
@@ -376,7 +376,7 @@ function ChatInfo(props) {
       <div className="resource-info info-1">
         <div className="resource-header">
           <p>
-            <BookOpen /> Tài nguyên
+            <BookOpen size={20} /> Tài nguyên
           </p>
           <button
             onClick={() => setIsResourceOpen(!isResourceOpen)}
@@ -492,7 +492,7 @@ function ChatInfo(props) {
 
       <div className="privacy-info info-1">
         <p>
-          <ShieldAlert /> Quyền riêng tư
+          <ShieldAlert size={20} /> Quyền riêng tư
         </p>
         {conversationInfo?.type === "group" || conversationInfo?.name ? (
           <button

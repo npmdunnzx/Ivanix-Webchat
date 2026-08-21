@@ -19,10 +19,6 @@ import debounce from "lodash.debounce";
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
 
-function findZeroUnreadConversation(conversations) {
-  return conversations.find((conv) => conv.unread_count === 0);
-}
-
 function Chat() {
   const { userInfo } = useContext(AuthContext);
   const { conversationId } = useParams();
@@ -33,7 +29,7 @@ function Chat() {
   const searchRef = useRef(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const messagesRef = useRef(null);
-  const { socket } = useContext(SocketContext);
+  const { socket, onlineUsers, isUserOnline } = useContext(SocketContext);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isChatInfoOpen, setIsChatInfoOpen] = useState(true);
@@ -47,13 +43,6 @@ function Chat() {
       try {
         const convs = await convService.getAllConversations();
         setConversations(convs.data.result);
-        // setSelectedConversation(
-        //   findZeroUnreadConversation(convs.data.result) || convs.data.result[0],
-        // );
-        // console.log(
-        //   "conversations:",
-        //   findZeroUnreadConversation(convs.data.result),
-        // );
       } catch (error) {
         console.error("Could not fetch conversations:" + error.message);
       }
@@ -64,16 +53,16 @@ function Chat() {
 
   useEffect(() => {
     if (conversations.length === 0) return;
-    
+
     if (conversationId) {
-       const targetConv = conversations.find((c) => c.id === conversationId);
-    if (targetConv) {
-      setSelectedConversation(targetConv);
-    } else {
-      navigate("/chat", { replace: true });
+      const targetConv = conversations.find((c) => c.id === conversationId);
+      if (targetConv) {
+        setSelectedConversation(targetConv);
+      } else {
+        navigate("/chat", { replace: true });
+      }
     }
-  }
-}, [conversationId, conversations, navigate]);
+  }, [conversationId, conversations, navigate]);
 
   const handleGroupCreated = (newConv) => {
     if (!newConv) return;
@@ -116,41 +105,45 @@ function Chat() {
 
   // Handle clear history
   const handleHistoryCleared = (convId) => {
-  if (selectedConversation?.id === convId) {
-    setMessages([]);
-    setMessagesRefreshKey(k => k + 1);
-  }
-};
+    if (selectedConversation?.id === convId) {
+      setMessages([]);
+      setMessagesRefreshKey(k => k + 1);
+    }
+  };
 
   // Listen for new messages
   useEffect(() => {
     const handleNewMessage = (msg) => {
-      if (msg.conversation_id !== selectedConversation?.id) return;
-      setMessages((prev) => {
-        const existingIndex = prev.findIndex(
-          (m) => m.client_offset && m.client_offset === msg.client_offset,
-        );
-        if (existingIndex !== -1) {
-          const updated = [...prev];
-          updated[existingIndex] = { ...msg, isUploading: false };
-          return updated;
-        }
-        return [...prev, msg];
-      });
+      // 1. Chỉ cập nhật khung chat nếu tin nhắn thuộc conversation đang mở
+      if (msg.conversation_id === selectedConversation?.id) {
+        setMessages((prev) => {
+          const existingIndex = prev.findIndex(
+            (m) => m.client_offset && m.client_offset === msg.client_offset,
+          );
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...msg, isUploading: false };
+            return updated;
+          }
+          return [...prev, msg];
+        });
+      }
+
+      // 2. Luôn cập nhật Sidebar cho TẤT CẢ hội thoại
       setConversations((prevConvs) => {
         const updatedConvs = prevConvs.map((conv) =>
           conv.id === msg.conversation_id
             ? {
-                ...conv,
-                last_message_content: msg.content,
-                last_message_at: msg.created_at,
-                last_message_sender_id: msg.sender_id,
-                unread_count:
-                  msg.conversation_id === selectedConversation?.id ||
+              ...conv,
+              last_message_content: msg.content || (msg.attachments?.length ? "[File/Hình ảnh]" : ""),
+              last_message_at: msg.created_at,
+              last_message_sender_id: msg.sender_id,
+              unread_count:
+                msg.conversation_id === selectedConversation?.id ||
                   msg.sender_id === userInfo?.id
-                    ? 0
-                    : (conv.unread_count || 0) + 1,
-              }
+                  ? 0
+                  : (conv.unread_count || 0) + 1,
+            }
             : conv,
         );
         return updatedConvs.sort(
@@ -159,11 +152,38 @@ function Chat() {
         );
       });
     };
+
     socket.on("message:new", handleNewMessage);
     return () => {
       socket.off("message:new", handleNewMessage);
     };
   }, [socket, selectedConversation?.id, userInfo]);
+
+  useEffect(() => {
+  const handleNewConversation = async ({ conversationId }) => {
+    setConversations((prev) => {
+      if (prev.some((c) => c.id === conversationId)) return prev; // đã có rồi
+      // Fetch conversation mới và thêm vào
+      convService.getAllConversations().then((res) => {
+        if (res.success && res.data?.result) {
+          const newConv = res.data.result.find((c) => c.id === conversationId);
+          if (newConv) {
+            socket.emit("conversation:join", newConv.id);
+            setConversations((latest) =>
+              latest.some((c) => c.id === newConv.id)
+                ? latest
+                : [newConv, ...latest]
+            );
+          }
+        }
+      });
+      return prev;
+    });
+  };
+
+  socket.on("conversation:new", handleNewConversation);
+  return () => socket.off("conversation:new", handleNewConversation);
+}, [socket]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -298,6 +318,11 @@ function Chat() {
     }
   };
 
+  const selectedPartnerId = selectedConversation?.type === "private" ? selectedConversation?.partner_id : null;
+  const isSelectedPartnerOnline = selectedPartnerId
+    ? (isUserOnline ? isUserOnline(selectedPartnerId) : onlineUsers?.includes(String(selectedPartnerId)))
+    : false;
+
   return (
     <div className="chat-page">
       <motion.aside
@@ -337,168 +362,190 @@ function Chat() {
 
         <div className="channel-list">
           {conversations.length > 0 ? (
-            conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => handleSelectConversation(conv)}
-                className={`channel-item ${conv.id === selectedConversation?.id ? "active" : ""}`}
-              >
-                <div className="channel-avatar">
-                  {conv.partner_avatar ? (
-                    <img
-                      src={conv.partner_avatar}
-                      alt={conv.partner_username}
-                      className="partner-avatar"
-                    />
-                  ) : (
-                    <Users size={18} />
-                  )}
-                  {conv.unread_count > 0 && (
-                    <span className="unread-dot">{conv.unread_count}</span>
-                  )}
-                </div>
-                <div className="channel-content">
-                  <div className="channel-heading">
-                    <p className={`${conv.unread_count > 0 ? "unread" : ""}`}>
-                      {conv.name || conv.partner_username}
-                    </p>
-                    <span>{dayjs(conv.last_message_at ?? conv.created_at).fromNow()}</span>
+            conversations.map((conv) => {
+              const isItemOnline = conv.type === "private" && conv.partner_id
+                ? (isUserOnline ? isUserOnline(conv.partner_id) : onlineUsers?.includes(String(conv.partner_id)))
+                : false;
+
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => handleSelectConversation(conv)}
+                  className={`channel-item ${conv.id === selectedConversation?.id ? "active" : ""}`}
+                >
+                  <div className="channel-avatar">
+                    {conv.partner_avatar ? (
+                      <img
+                        src={conv.partner_avatar}
+                        alt={conv.partner_username}
+                        className="partner-avatar"
+                      />
+                    ) : (
+                      <Users size={18} />
+                    )}
+                    {conv.type === "private" && isItemOnline && (
+                      <span className="online-dot online" style={{ position: "absolute", bottom: 0, right: 0 }} />
+                    )}
+                    {conv.unread_count > 0 && (
+                      <span className="unread-dot">{conv.unread_count}</span>
+                    )}
                   </div>
-                  <p
-                    className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}
-                  >
-                    {conv.last_message_content}
-                  </p>
-                </div>
-              </button>
-            ))
+                  <div className="channel-content">
+                    <div className="channel-heading">
+                      <p className={`${conv.unread_count > 0 ? "unread" : ""}`}>
+                        {conv.name || conv.partner_username}
+                      </p>
+                      <span>{dayjs(conv.last_message_at ?? conv.created_at).fromNow()}</span>
+                    </div>
+                    <p
+                      className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}
+                    >
+                      {conv.last_message_content}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
           ) : (
             <p className="no-conversations">Không có cuộc trò chuyện nào</p>
           )}
         </div>
       </motion.aside>
-      { selectedConversation ? (
-      <div className="chat-container">
-        <div className="chat-header">
-          {selectedConversation?.partner_avatar ? (
-            <img
-              src={selectedConversation.partner_avatar}
-              alt={selectedConversation.partner_username}
-              className="avatar-info"
-            />
-          ) : (
-            <Users className="avatar-info" />
-          )}
-          <h2>
-            {selectedConversation?.name ||
-              selectedConversation?.partner_username}
-          </h2>
-          <span className="online-dot"></span>
-          <button
-            className="chat-info-button"
-            onClick={() => setIsChatInfoOpen(!isChatInfoOpen)}
-          >
-            <Info size={20} />
-          </button>
-        </div>
-        <div className="chat-content">
-          <ul id="messages" ref={messagesRef}>
-            {messages.map((msg, index) => {
-              const isMine = msg.sender_id === userInfo?.id;
-              const hasText = Boolean(msg.content && msg.content.trim());
-              const hasAttachments = msg.attachments && msg.attachments.length > 0;
+      {selectedConversation ? (
+        <div className="chat-container">
+          <div className="chat-header">
+            {selectedConversation?.partner_avatar ? (
+              <img
+                src={selectedConversation.partner_avatar}
+                alt={selectedConversation.partner_username}
+                className="avatar-info"
+              />
+            ) : (
+              <Users className="avatar-info" />
+            )}
+            <div className="chat-header-title">
+              <h2>
+                {selectedConversation?.name ||
+                  selectedConversation?.partner_username}
+              </h2>
+              {selectedConversation?.type === "private" && (
+                <div className="chat-header-status-row">
+                  <span className={`online-dot ${isSelectedPartnerOnline ? "online" : "offline"}`} />
+                  <span className="chat-header-status-text">
+                    {isSelectedPartnerOnline
+                      ? "Đang hoạt động"
+                      : selectedConversation?.partner_last_seen
+                        ? `Hoạt động ${dayjs(selectedConversation.partner_last_seen).fromNow()}`
+                        : "Ngoại tuyến"}
+                  </span>
+                </div>
+              )}
+            </div>
+            <button
+              className="chat-info-button"
+              onClick={() => setIsChatInfoOpen(!isChatInfoOpen)}
+            >
+              <Info size={20} />
+            </button>
+          </div>
+          <div className="chat-content">
+            <ul id="messages" ref={messagesRef}>
+              {messages.map((msg, index) => {
+                const isMine = msg.sender_id === userInfo?.id;
+                const hasText = Boolean(msg.content && msg.content.trim());
+                const hasAttachments = msg.attachments && msg.attachments.length > 0;
 
-              // Xác định nhóm liên tiếp
-              const prevMsg = messages[index - 1];
-              const nextMsg = messages[index + 1];
-              const isFirstInGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id;
-              const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
+                // Xác định nhóm liên tiếp
+                const prevMsg = messages[index - 1];
+                const nextMsg = messages[index + 1];
+                const isFirstInGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+                const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
 
-              return (
-                <li
-                  key={msg.server_offset || msg.client_offset || index}
-                  className={[
-                    "msg-row",
-                    isMine ? "mine" : "other",
-                    isFirstInGroup ? "first-in-group" : "cont-in-group",
-                    isLastInGroup ? "last-in-group" : "",
-                  ].join(" ")}
-                >
-                  {/* Cột trái: Avatar (chỉ với tin người khác) */}
-                  {!isMine && (
-                    <div className="msg-avatar-col">
-                      {isFirstInGroup ? (
-                        msg.sender_avt ? (
-                          <img
-                            src={msg.sender_avt}
-                            alt={msg.sender_username}
-                            className="msg-sender-avatar"
-                          />
+                return (
+                  <li
+                    key={msg.server_offset || msg.client_offset || index}
+                    className={[
+                      "msg-row",
+                      isMine ? "mine" : "other",
+                      isFirstInGroup ? "first-in-group" : "cont-in-group",
+                      isLastInGroup ? "last-in-group" : "",
+                    ].join(" ")}
+                  >
+                    {/* Cột trái: Avatar (chỉ với tin người khác) */}
+                    {!isMine && (
+                      <div className="msg-avatar-col">
+                        {isFirstInGroup ? (
+                          msg.sender_avt ? (
+                            <img
+                              src={msg.sender_avt}
+                              alt={msg.sender_username}
+                              className="msg-sender-avatar"
+                            />
+                          ) : (
+                            <div className="msg-sender-avatar msg-sender-avatar-fallback">
+                              <Users size={16} />
+                            </div>
+                          )
                         ) : (
-                          <div className="msg-sender-avatar msg-sender-avatar-fallback">
-                            {(msg.sender_username || "?")[0].toUpperCase()}
-                          </div>
-                        )
-                      ) : (
-                        <div className="msg-avatar-spacer" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Cột phải: Tên + Bubbles */}
-                  <div className="msg-body-col">
-                    {/* Tên người gửi — chỉ hiện ở tin đầu nhóm */}
-                    {!isMine && isFirstInGroup && (
-                      <span className="msg-sender-name">{msg.sender_username}</span>
-                    )}
-
-                    {/* Bong bóng văn bản */}
-                    {hasText && (
-                      <div className="msg-text-bubble">
-                        <p>{msg.content}</p>
+                          <div className="msg-avatar-spacer" />
+                        )}
                       </div>
                     )}
 
-                    {/* Đính kèm */}
-                    {hasAttachments && (
-                      <MessageAttachments attachments={msg.attachments} />
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    {/* Cột phải: Tên + Bubbles */}
+                    <div className="msg-body-col">
+                      {/* Tên người gửi — chỉ hiện ở tin đầu nhóm */}
+                      {!isMine && isFirstInGroup && (
+                        <span className="msg-sender-name">{msg.sender_username}</span>
+                      )}
+
+                      {/* Bong bóng văn bản */}
+                      {hasText && (
+                        <div className="msg-text-bubble">
+                          <p>{msg.content}</p>
+                        </div>
+                      )}
+
+                      {/* Đính kèm */}
+                      {hasAttachments && (
+                        <MessageAttachments attachments={msg.attachments} />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
 
 
-          <form id="form" onSubmit={handleSubmit}>
-            {/* Preview grid — hiện phía trên khi có file */}
-            {attachedFiles.length > 0 && (
-              <FileAttachment
-                files={attachedFiles}
-                onChange={setAttachedFiles}
-                previewOnly
-              />
-            )}
-            <div className="form-row">
-              {/* Trigger button nằm trong hàng cùng input */}
-              <FileAttachment
-                files={attachedFiles}
-                onChange={setAttachedFiles}
-                triggerOnly
-              />
-              <input
-                id="input"
-                autoComplete="off"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Nhắn tin..."
-              />
-              <button type="submit">Send</button>
-            </div>
-          </form>
+            <form id="form" onSubmit={handleSubmit}>
+              {/* Preview grid — hiện phía trên khi có file */}
+              {attachedFiles.length > 0 && (
+                <FileAttachment
+                  files={attachedFiles}
+                  onChange={setAttachedFiles}
+                  previewOnly
+                />
+              )}
+              <div className="form-row">
+                {/* Trigger button nằm trong hàng cùng input */}
+                <FileAttachment
+                  files={attachedFiles}
+                  onChange={setAttachedFiles}
+                  triggerOnly
+                />
+                <input
+                  id="input"
+                  autoComplete="off"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Nhắn tin..."
+                />
+                <button type="submit">Send</button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
-            ) : (
+      ) : (
         <div className="chat-container chat-container--empty">
           <div className="empty-state">
             {/* Blobs nền */}
@@ -555,13 +602,13 @@ function Chat() {
         </div>
       )}
       {selectedConversation && (
-      <ChatInfo 
-        conversation={selectedConversation} 
-        isOpen={isChatInfoOpen} 
-        onConversationRemoved={handleConversationRemoved}
-        onGroupRenamed={handleGroupRenamed}
-        onHistoryCleared={handleHistoryCleared}
-      />)}
+        <ChatInfo
+          conversation={selectedConversation}
+          isOpen={isChatInfoOpen}
+          onConversationRemoved={handleConversationRemoved}
+          onGroupRenamed={handleGroupRenamed}
+          onHistoryCleared={handleHistoryCleared}
+        />)}
       <CreateGroupModal
         isOpen={isCreateGroupOpen}
         onClose={() => setIsCreateGroupOpen(false)}

@@ -9,7 +9,7 @@ import user_avatar from "../assets/images/user_avatar.png";
 const navItems = [
   { icon: MessageSquare, label: "Tin nhắn", path: "/chat" },
   { icon: Users, label: "Danh bạ", path: "/contacts" },
-  { icon: BarChart3, label: "Lưu trữ", path: "/storage" },
+  { icon: BarChart3, label: "Thông báo", path: "/notifications" },
 ];
 
 const cx = (...classes) => classes.filter(Boolean).join(" ");

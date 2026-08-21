@@ -48,14 +48,14 @@ const newGroupChat = async (groupName, membersId) => {
   return response;
 };
 
-const addNewMembers = async (conversation_id, membersId) => {
+const addNewMembers = async (conversationId, membersId) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.addNewMembers(conversation_id, membersId);
+    const data = await convApi.addNewMembers(conversationId, membersId);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -117,14 +117,14 @@ const searchConversation = async (keyword) => {
   return response;
 };
 
-const getGroupMembers = async (conversation_id) => {
+const getGroupMembers = async (conversationId) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.getGroupMembers(conversation_id);
+    const data = await convApi.getGroupMembers(conversationId);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -140,14 +140,14 @@ const getGroupMembers = async (conversation_id) => {
   return response;
 };
 
-const leaveConversation = async (conversation_id) => {
+const leaveConversation = async (conversationId) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.leaveConversation(conversation_id);
+    const data = await convApi.leaveConversation(conversationId);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -163,14 +163,14 @@ const leaveConversation = async (conversation_id) => {
   return response;
 };
 
-const delConversationHistory = async (conversation_id) => {
+const delConversationHistory = async (conversationId) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.delConversationHistory(conversation_id);
+    const data = await convApi.delConversationHistory(conversationId);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -186,7 +186,7 @@ const delConversationHistory = async (conversation_id) => {
   return response;
 };
 
-const removeGroupMember = async (conversation_id, target_user_id) => {
+const removeGroupMember = async (conversationId, targetUserId) => {
   const response = {
     success: true,
     listErr: [],
@@ -194,8 +194,8 @@ const removeGroupMember = async (conversation_id, target_user_id) => {
   };
   try {
     const data = await convApi.removeGroupMember(
-      conversation_id,
-      target_user_id,
+      conversationId,
+      targetUserId,
     );
     response.data = data;
   } catch (error) {
@@ -217,14 +217,14 @@ const removeGroupMember = async (conversation_id, target_user_id) => {
   return response;
 };
 
-const renameGroup = async (conversation_id, group_name) => {
+const renameGroup = async (conversationId, groupName) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.renameGroup(conversation_id, group_name);
+    const data = await convApi.renameGroup(conversationId, groupName);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -240,14 +240,14 @@ const renameGroup = async (conversation_id, group_name) => {
   return response;
 };
 
-const transferAdmin = async (conversation_id, new_admin_id) => {
+const transferAdmin = async (conversationId, newAdminId) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.transferAdmin(conversation_id, new_admin_id);
+    const data = await convApi.transferAdmin(conversationId, newAdminId);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -263,14 +263,14 @@ const transferAdmin = async (conversation_id, new_admin_id) => {
   return response;
 };
 
-const deleteGroupConversation = async (conversation_id) => {
+const deleteGroupConversation = async (conversationId) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.deleteGroupConversation(conversation_id);
+    const data = await convApi.deleteGroupConversation(conversationId);
     response.data = data;
   } catch (error) {
     response.success = false;
@@ -286,14 +286,14 @@ const deleteGroupConversation = async (conversation_id) => {
   return response;
 };
 
-const getConversationAttachments = async (conversation_id, type) => {
+const getConversationAttachments = async (conversationId, type) => {
   const response = {
     success: true,
     listErr: [],
     data: null,
   };
   try {
-    const data = await convApi.getConversationAttachments(conversation_id, type);
+    const data = await convApi.getConversationAttachments(conversationId, type);
     response.data = data;
   } catch (error) {
     response.success = false;

@@ -13,9 +13,9 @@ const newGroupChat = async (groupName, membersId) => {
   return response.data;
 };
 
-const addNewMembers = async (conversation_id, membersId) => {
+const addNewMembers = async (conversationId, membersId) => {
   const response = await axiosClient.post("/conversations/groups/members", {
-    conversation_id,
+    conversationId,
     membersId,
   });
   return response.data;
@@ -33,65 +33,65 @@ const searchConversation = async (name) => {
   return response.data;
 };
 
-const getGroupMembers = async (conversation_id) => {
+const getGroupMembers = async (conversationId) => {
   const response = await axiosClient.get(
-    `/conversations/groups/${conversation_id}/members`,
+    `/conversations/groups/${conversationId}/members`,
   );
   return response.data;
 };
 
-const leaveConversation = async (conversation_id) => {
+const leaveConversation = async (conversationId) => {
   const response = await axiosClient.post("/conversations/leave", {
-    conversation_id,
+    conversationId,
   });
   return response.data;
 };
 
-const delConversationHistory = async (conversation_id, user_id) => {
+const delConversationHistory = async (conversationId, userId) => {
   const response = await axiosClient.post(
-    `/conversations/${conversation_id}/history`,
+    `/conversations/${conversationId}/history`,
     {
-      data: { user_id },
+      data: { userId },
     }
   );
   return response.data;
 };
 
-const removeGroupMember = async (conversation_id, target_user_id) => {
+const removeGroupMember = async (conversationId, targetUserId) => {
   const response = await axiosClient.post(
     "/conversations/groups/members/remove",
     {
-      conversation_id,
-      target_user_id,
+      conversationId,
+      targetUserId,
     },
   );
   return response.data;
 };
 
-const renameGroup = async (conversation_id, group_name) => {
+const renameGroup = async (conversationId, groupName) => {
   const response = await axiosClient.put("/conversations/groups/name", {
-    conversation_id,
-    group_name,
+    conversationId,
+    groupName,
   });
   return response.data;
 };
 
-const transferAdmin = async (conversation_id, new_admin_id) => {
+const transferAdmin = async (conversationId, newAdminId) => {
   const response = await axiosClient.put("/conversations/groups/admin", {
-    conversation_id,
-    new_admin_id,
+    conversationId,
+    newAdminId,
   });
   return response.data;
 };
 
-const deleteGroupConversation = async (conversation_id) => {
-  const response = await axiosClient.delete(`/conversations/groups/${conversation_id}`);
+const deleteGroupConversation = async (conversationId) => {
+  const response = await axiosClient.delete(`/conversations/groups/${conversationId}`);
   return response.data;
 };
 
-const getConversationAttachments = async (conversation_id, type) => {
+const getConversationAttachments = async (conversationId, type) => {
   const response = await axiosClient.get(
-    `/conversations/${conversation_id}/attachments${type ? `?type=${type}` : ""}`
+    `/conversations/${conversationId}/attachments${type ? `?type=${type}` : ""}`
   );
   return response.data;
 };
