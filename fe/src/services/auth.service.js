@@ -18,7 +18,7 @@ const signup = async (userInfo) => {
     response.data = data;
   } catch (error) {
     response.success = false;
-    console.log(error);
+    // console.log(error);
     if (error.response && error.response.status === 400) {
       const errors = error.response.data.errors || [];
       errors.forEach((err) => {
@@ -37,7 +37,7 @@ const signup = async (userInfo) => {
       console.error(error);
     }
   }
-  console.log("response", response);
+  // console.log("response", response);
 
   return response;
 };
@@ -56,7 +56,7 @@ const login = async (userInfo, rememberMe) => {
     response.data = data;
   } catch (error) {
     response.success = false;
-    console.log(error);
+    // console.log(error);
     if (error.response && error.response.data) {
       const errorData = error.response.data;
       if (errorData.errors && Array.isArray(errorData.errors)) {
@@ -79,7 +79,7 @@ const login = async (userInfo, rememberMe) => {
       });
     }
   }
-  console.log("response", response);
+  // console.log("response", response);
 
   return response;
 };

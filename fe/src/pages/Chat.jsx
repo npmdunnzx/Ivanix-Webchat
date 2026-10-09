@@ -135,7 +135,7 @@ function Chat() {
           conv.id === msg.conversation_id
             ? {
               ...conv,
-              last_message_content: msg.content || (msg.attachments?.length ? "[File/Hình ảnh]" : ""),
+              last_message_content: msg.content || (msg.attachments.length > 0 ? "[File/Hình ảnh]" : ""),
               last_message_at: msg.created_at,
               last_message_sender_id: msg.sender_id,
               unread_count:
@@ -400,7 +400,7 @@ function Chat() {
                     <p
                       className={`channel-description ${conv.unread_count > 0 ? "unread" : ""}`}
                     >
-                      {conv.last_message_content}
+                      { (conv.last_message_sender_id === userInfo.id ? "Bạn: " : "") + (conv.last_message_type === "file" ? "[File/Hình ảnh]" : conv.last_message_content || "") }
                     </p>
                   </div>
                 </button>

@@ -4,7 +4,6 @@ import { createServer } from "node:http";
 import {Server} from "socket.io";
 import cors from "cors";
 import config from "./env.config.js";
-import db from "./db.config.js";
 import {socketAuth} from "../middlewares/socketAuth.js";
 import authRoutes from "../routes/auth.routes.js";
 import userRoutes from "../routes/user.routes.js";

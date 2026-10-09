@@ -123,7 +123,7 @@ const searchConversation = async (req, res) => {
 
 const getGroupMembers = async (req, res) => {
   const conversationId = req.params.conversationId;
-  console.log("Fetching group members for conversationId:", conversationId);
+  // console.log("Fetching group members for conversationId:", conversationId);
   try {
     const result = await convService.getGroupMembers(conversationId);
     res.status(200).json({ message: "Get group members successfully", result });

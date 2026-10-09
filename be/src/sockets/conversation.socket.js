@@ -11,17 +11,17 @@ const registerConvHandlers = (io, socket) => {
       if (rows.length === 0) {
         throw new Error("You are not a member of this conversation");
       }
-      console.log(`Join room ${conversationId} successfully`);
+      // console.log(`Join room ${conversationId} successfully`);
       socket.join(`conversation:${conversationId}`);
       callback?.({ success: true });
     } catch (error) {
-      console.error("Error joining conversation:" + error.message);
+      // console.error("Error joining conversation:" + error.message);
       callback?.({ success: false, message: "Internal server error" });
     }
   });
 
   socket.on("conversation:leave", (conversationId) => {
-    console.log(`Leaved room ${conversationId}`);
+    // console.log(`Leaved room ${conversationId}`);
     socket.leave(`conversation:${conversationId}`);
   });
 };

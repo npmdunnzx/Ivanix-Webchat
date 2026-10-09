@@ -30,7 +30,7 @@ const login = async (email, password) => {
     }
     const user = rows[0];
 
-    const passwordMatch = await bcrypt.compareSync(
+    const passwordMatch = bcrypt.compareSync(
       password,
       user.password_hash,
     );

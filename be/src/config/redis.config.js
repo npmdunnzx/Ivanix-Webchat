@@ -4,7 +4,7 @@ import config from "./env.config.js";
 const redisClient = new Redis({
   host: config.REDIS.host,
   port: config.REDIS.port,
-  password: config.REDIS.password,
+  // password: config.REDIS.password,
 });
 
 redisClient.on("connect", () => {

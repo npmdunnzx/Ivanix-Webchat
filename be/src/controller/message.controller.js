@@ -60,7 +60,6 @@ const uploadFilesMessage = async (req, res) => {
       senderId,
       files
     );
-    console.log("message", message);
     io.to(`conversation:${conversationId}`).emit("message:new", message);
 
     res

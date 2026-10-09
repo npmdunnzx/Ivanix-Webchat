@@ -117,7 +117,7 @@ export default function Contacts() {
         const result = await userService.search(keyword);
         if (requestId !== latestSearchId.current) return;
         setSearchResults(result.data);
-        console.log("result", result.data);
+        // console.log("result", result.data);
       } catch (error) {
         console.error("Error searching users:", error.message);
       }

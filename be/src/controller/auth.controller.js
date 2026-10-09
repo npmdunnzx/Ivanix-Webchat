@@ -22,7 +22,7 @@ const login = async (req, res) => {
     try {
         const user = await authService.login(email, password);
         utils.generateToken(user.email, user.id, rememberMe, res);
-        res.status(201).json({message: "Login successfully", user});
+        res.status(200).json({message: "Login successfully", user});
     } catch (err) {
         console.error("Login error:", err);
         res.status(400).json({ message: err.message || "Could not login" });

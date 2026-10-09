@@ -31,6 +31,7 @@ const getAllConversations = async (userId) => {
     `;
   try {
     const { rows } = await db.query(query, [userId]);
+    // console.log("getAllConversations rows", rows);
     return rows;
   } catch (error) {
     console.error("Could not get conversations:" + error.message);

@@ -3,7 +3,6 @@
 
 **Phiên bản:** 1.0  
 **Ngày cập nhật:** 2026-08-06  
-**Trạng thái:** Draft
 
 ---
 

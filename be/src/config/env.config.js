@@ -4,7 +4,6 @@ dotenv.config();
 const env = process.env.NODE_ENV || "development";
 
 const config = {
-  DB_URL: process.env.DB_URL,
   PORT: process.env.PORT || 4000,
   CLIENT_URL: (process.env.CLIENT_URL || "").trim(),
   DB: {
